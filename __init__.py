@@ -1,6 +1,6 @@
 __all__ = [ 'get_c3' ]
 
-def get_c3(url, tenant, tag, mode, define_types=True, auth=None):
+def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
     """
     Returns c3remote type system for python.
     """
