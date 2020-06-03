@@ -5,6 +5,6 @@ setup(
     packages=find_packages(),
 
     # Metadata
-    author="Matthew Krafczyk"
-    description="Provides helper functions for interacting with c3"
+    author="Matthew Krafczyk",
+    description="Provides helper functions for interacting with c3",
 )
