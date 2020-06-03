@@ -1,4 +1,5 @@
 __all__ = [ 'get_c3' ]
+__version__ = '0.1'
 
 def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
     """
