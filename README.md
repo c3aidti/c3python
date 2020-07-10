@@ -7,7 +7,7 @@ The primary use is as follows:
 
 ```
 from c3python get_c3
-c3 = get_c3('<vanity_url>', '<tenant>', '<tag>', 'thick')
+c3 = get_c3('<vanity_url>', '<tenant>', '<tag>')
 ```
 
-Of course, use `help` for more.
+Of course, use the `help` function for more info.
