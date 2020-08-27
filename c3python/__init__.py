@@ -1,5 +1,5 @@
 __all__ = [ 'get_c3' , 'EvaluateResultToPandas']
-__version__ = '0.1'
+__version__ = '0.2'
 
 def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
     """
