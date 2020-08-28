@@ -59,12 +59,12 @@ def EvaluateResultToPandas(result=None, eval_spec=None):
     else:
         if type(eval_spec) is dict:
             column_names = eval_spec['projection'].split(',')
-        elif str(type(eval_spec)) == 'c3.EvaluateResult':
+        elif str(type(eval_spec)) == 'c3.EvaluateSpec':
             # For now, we do a string comparison because the 'c3' object
             # Is not in scope in this function.
             column_names = eval_spec.projection.split(',')
         else:
-            raise RuntimeError("eval_spec should be either a dict or c3.EvaluateType, Type {} not supported".format(type(eval_spec)))
+            raise RuntimeError("eval_spec should be either a dict or c3.EvaluateSpec, Type {} not supported".format(type(eval_spec)))
 
         if len(column_names) != num_columns:
             raise RuntimeError("Eval Spec doesn't have correct number of columns! Has {} expected {}. Did you use the right Spec?".format(len(column_names), num_columns))
