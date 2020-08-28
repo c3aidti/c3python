@@ -45,7 +45,9 @@ def EvaluateResultToPandas(result=None, eval_spec=None):
         raise ValueError("You must pass a non-None value.")
 
     # Check whether the input is the right type
-    if type(result) is not c3.EvaluateResult:
+    # For now, we do a string comparison because the 'c3' object
+    # Is not in scope in this function.
+    if str(type(result)) != 'c3.EvaluateResult':
         raise ValueError("You must pass a c3.EvaluateResult type.")
 
     # Find number of columns in the result
@@ -57,7 +59,9 @@ def EvaluateResultToPandas(result=None, eval_spec=None):
     else:
         if type(eval_spec) is dict:
             column_names = eval_spec['projection'].split(',')
-        elif type(eval_spec) is c3.EvaluateResult:
+        elif str(type(eval_spec)) == 'c3.EvaluateResult':
+            # For now, we do a string comparison because the 'c3' object
+            # Is not in scope in this function.
             column_names = eval_spec.projection.split(',')
         else:
             raise RuntimeError("eval_spec should be either a dict or c3.EvaluateType, Type {} not supported".format(type(eval_spec)))
