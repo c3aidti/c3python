@@ -80,4 +80,11 @@ def EvaluateResultToPandas(result=None, eval_spec=None):
             results[column_names[i]].append(row.cells[i].value())
     
     # Build and return the final Pandas DataFrame
-    return pd.DataFrame(results) 
+    try:
+        import pandas as pd
+        return pd.DataFrame(results) 
+    except ImportError as e:
+        # Trick from https://stackoverflow.com/questions/6062576/adding-information-to-an-exception/6062799
+        raise type(e)(e.message + ' EvaluateResultToPandas needs pandas to work!')
+    except Exception as e:
+        raise e
