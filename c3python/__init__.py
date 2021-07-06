@@ -13,6 +13,8 @@ def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
     c3iot = ModuleType('c3IoT')
     c3iot.__loader__ = c3iot
     src = urlopen(url + '/public/python/c3remote_bootstrap.py').read()
+    #fmtsrc = src.decode().replace('\\n', '\n').replace('\\t', '\t')
+    #print (fmtsrc)
     exec(src, c3iot.__dict__)
     return c3iot.C3RemoteLoader.typeSys(
         url=url,
