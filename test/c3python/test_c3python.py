@@ -1,21 +1,13 @@
 import pytest
 import os
 from c3python.c3python import _get_c3_key_token
-from c3python import getc3
-from c3python.c3python import _get_user_filename
+from c3python import get_c3
+
 
 def test__get_c3_key_token():
    tok =  _get_c3_key_token(signature_text='1626099164960',username='auser')
    assert tok is not None
 
-def test__get_user_filename():
-    filename = _get_user_filename("https://dti-dadams.c3dti.ai")
-    assert filename is not None
-    print(filename)
-    filepath = os.environ.get('HOME')+'/.c3/'+filename
-    with open(filepath, 'r') as f:
-        user = f.read().rstrip("\n")
-        print(f":{user}:")
 
 # def test_getc3_nodetoken_signature():
 #     import sys
