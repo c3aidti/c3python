@@ -1,5 +1,7 @@
 import pytest
-import c3python
+from c3python import getc3
 
-def test_get_c3():
-    pass
+def test_getc3():
+    c3 = getc3()
+    assert c3 is not None
+
