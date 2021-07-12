@@ -1,5 +1,6 @@
 import os
 from time import time
+import base64
 #import json
 
 def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
@@ -16,6 +17,15 @@ def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
     src = urlopen(url + '/public/python/c3remote_bootstrap.py').read()
     #fmtsrc = src.decode().replace('\\n', '\n').replace('\\t', '\t')
     #print (fmtsrc)
+
+    c3keyfile = os.environ.get('HOME') + '/.c3/c3-rsa'
+
+    # use the c3-rsa keyfile, if it exists
+    if os.path.isfile(c3keyfile):
+        user = _get_rsa_user(url)
+        if user:
+            auth = _get_c3_key_token(c3keyfile, username=user)
+
     exec(src, c3iot.__dict__)
     return c3iot.C3RemoteLoader.typeSys(
         url=url,
@@ -26,8 +36,6 @@ def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
         define_types=define_types
     )
 
-
-import base64
 from Crypto.Hash import SHA512
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
@@ -48,9 +56,23 @@ def _get_sig(signer, sigtext):
     """
     pass
 
+def _get_rsa_user(vanity_url):
+    """
+    Return the username associated with the user's private key.
+    """
+    
+    filename = os.environ.get('HOME')+'/.c3/'+'c3-rsa.' + vanity_url.split('://')[1] + '.user'
+    if os.path.isfile(filename):
+        with open(filename, 'r') as f:
+            user = f.read().rstrip("\n")
+    else:
+        user = None
+    return user
+    
 def _get_c3_key_token(keyfile=None, keystring=None, signature_text=None, username=None):
     """
     Return the key token for the c3 keyfile.
+    No support for keystring yet.
     """
     if not keyfile and not keystring:
         keyfile = os.getenv('HOME') + '/.c3/c3-rsa'
@@ -59,18 +81,18 @@ def _get_c3_key_token(keyfile=None, keystring=None, signature_text=None, usernam
       signature_text = str(int(time()*1000))
     
     key = _get_key(keyfile)
-    print (signature_text)
+    #print (signature_text)
     #data=json.dumps(signature_text)
     h=SHA512.new()
     h.update(signature_text.encode('utf-8'))
     sig = key.sign(h)
     plainsig = base64.b64encode(sig).decode('utf-8')
-    print(f"pysig:{plainsig}")
+    #print(f"pysig:{plainsig}")
     #tokenString = adminUser + ":" + Buffer.from(signatureText).toString('base64') + ":" + signature;
     tokenstr = f"{username}:{base64.b64encode(signature_text.encode('utf-8')).decode('utf-8')}:{plainsig}"
-    print(f"pytokenstr:{tokenstr}")
+    #print(f"pytokenstr:{tokenstr}")
     authtoken = f"c3key {base64.b64encode(tokenstr.encode('utf-8')).decode('utf-8')}"
-    print(f"pyauthtoken:{authtoken}")
+    #print(f"pyauthtoken:{authtoken}")
     return authtoken
 
 def EvaluateResultToPandas(result=None, eval_spec=None):
@@ -138,10 +160,3 @@ def EvaluateResultToPandas(result=None, eval_spec=None):
         raise type(e)(e.message + ' EvaluateResultToPandas needs pandas to work!')
     except Exception as e:
         raise e
-
-
-def getc3():
-    """
-    Return the c3 object.
-    """
-    pass
