@@ -5,6 +5,10 @@ setup(
     packages=find_packages(),
 
     # Metadata
-    author="Matthew Krafczyk",
+    author="Matthew Krafczyk, Darren Adams",
     description="Provides helper functions for interacting with c3",
+    install_requires=['requests', 'pycryptodome'],
+    extras_require = {
+        'DF':  ['pandas']
+    }
 )

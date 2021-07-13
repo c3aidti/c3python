@@ -1,12 +1,17 @@
 import os
 from time import time
 import base64
-#import json
+from Crypto.PublicKey import RSA
+from Crypto.Signature import PKCS1_v1_5 
+from Crypto.Hash import SHA512
 
-def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
+def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None, keyfile=None, keystring=None):
     """
     Returns c3remote type system for python.
 
+    todo:
+      - add support for keystring
+    
     """
     keyauth = False
     if url is None:
@@ -19,23 +24,25 @@ def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
         from urllib.request import urlopen
     except ImportError:
         from urllib2 import urlopen
+
     from types import ModuleType
     c3iot = ModuleType('c3IoT')
     c3iot.__loader__ = c3iot
     src = urlopen(url + '/public/python/c3remote_bootstrap.py').read()
-    c3keyfile = os.environ.get('HOME') + '/.c3/c3-rsa'
-
+    
     # use the c3-rsa keyfile, if it exists
-    if os.path.isfile(c3keyfile):
+    if keyfile is None:
+        keyfile = os.environ.get('HOME') + '/.c3/c3-rsa'
+    if os.path.isfile(keyfile):
         user = _get_rsa_user(url)
         if user:
-            auth = _get_c3_key_token(c3keyfile, username=user)
-            keyauth = True
+            auth = _get_c3_key_token(keyfile, username=user)
 
     # It might be good to have a try except here...
     exec(src, c3iot.__dict__)
 
     # If auth is not None, retry with auth None if it fails
+    # Note that auth=None implies username password auth
     while True:
         try:
             c3 = c3iot.C3RemoteLoader.typeSys(
@@ -56,8 +63,6 @@ def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
     return c3
 
 def _get_key(PEM_LOCATION):
-    from Crypto.PublicKey import RSA
-    from Crypto.Signature import PKCS1_v1_5 
     with open(PEM_LOCATION, 'rb') as secret_file:
         secret=secret_file.read()
         if (secret.startswith(b'-----BEGIN RSA PRIVATE KEY-----') or
@@ -88,7 +93,6 @@ def _get_rsa_user(vanity_url):
     return user
     
 def _get_c3_key_token(keyfile=None, keystring=None, signature_text=None, username=None):
-    from Crypto.Hash import SHA512
     """
     Return the key token for the c3 keyfile.
     No support for keystring yet.
