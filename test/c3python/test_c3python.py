@@ -10,13 +10,14 @@ def test_get_c3_user_pass(monkeypatch):
     Will currently fail is url ,tennat or tag are invalid or none 
     """
     c3 = get_c3(
-        os.environ.get('C3_URL'),os.environ.get('C3_TENANT'),os.environ.get('C3_TAG')
+        os.environ.get("C3_URL"), os.environ.get("C3_TENANT"), os.environ.get("C3_TAG")
     )
     assert c3 is not None
 
+
 # def test_get_c3_user_badurl(monkeypatch):
 #     """
-#     Will currently fail is url ,tennat or tag are invalid or none 
+#     Will currently fail is url ,tennat or tag are invalid or none
 #     """
 #     monkeypatch.setenv('C3_URL', 'http://craphost:8080')
 #     monkeypatch.setenv('C3_TENANT', 'auser')
@@ -26,33 +27,46 @@ def test_get_c3_user_pass(monkeypatch):
 #     )
 #     )
 
+
 def test_get_c3_user_badargs(monkeypatch):
     """
     Will currently fail is url ,tennat or tag are invalid or none 
     """
-    monkeypatch.delenv('C3_URL', raising=False)
-    monkeypatch.setenv('C3_TENANT', 'auser')
-    monkeypatch.setenv('C3_TAG', 'atag')
-    pytest.raises(ValueError, get_c3,
-        os.environ.get('C3_URL'),os.environ.get('C3_TENANT'),os.environ.get('C3_TAG')
+    monkeypatch.delenv("C3_URL", raising=False)
+    monkeypatch.setenv("C3_TENANT", "auser")
+    monkeypatch.setenv("C3_TAG", "atag")
+    pytest.raises(
+        ValueError,
+        get_c3,
+        os.environ.get("C3_URL"),
+        os.environ.get("C3_TENANT"),
+        os.environ.get("C3_TAG"),
     )
-    monkeypatch.setenv('C3_URL', 'http://craphost:8080')
-    monkeypatch.delenv('C3_TENANT', raising=False)
-    monkeypatch.setenv('C3_TAG', 'atag')
-    pytest.raises(ValueError, get_c3,
-        os.environ.get('C3_URL'),os.environ.get('C3_TENANT'),os.environ.get('C3_TAG')
+    monkeypatch.setenv("C3_URL", "http://craphost:8080")
+    monkeypatch.delenv("C3_TENANT", raising=False)
+    monkeypatch.setenv("C3_TAG", "atag")
+    pytest.raises(
+        ValueError,
+        get_c3,
+        os.environ.get("C3_URL"),
+        os.environ.get("C3_TENANT"),
+        os.environ.get("C3_TAG"),
     )
-    monkeypatch.setenv('C3_URL', 'http://craphost:8080')
-    monkeypatch.setenv('C3_TENANT', 'auser')
-    monkeypatch.delenv('C3_TAG', raising=False)
-    pytest.raises(ValueError, get_c3,
-        os.environ.get('C3_URL'),os.environ.get('C3_TENANT'),os.environ.get('C3_TAG')
+    monkeypatch.setenv("C3_URL", "http://craphost:8080")
+    monkeypatch.setenv("C3_TENANT", "auser")
+    monkeypatch.delenv("C3_TAG", raising=False)
+    pytest.raises(
+        ValueError,
+        get_c3,
+        os.environ.get("C3_URL"),
+        os.environ.get("C3_TENANT"),
+        os.environ.get("C3_TAG"),
     )
 
 
 def test__get_c3_key_token():
-   tok =  _get_c3_key_token(signature_text='1626099164960',username='auser')
-   assert tok is not None
+    tok = _get_c3_key_token(signature_text="1626099164960", username="auser")
+    assert tok is not None
 
 
 # def test_getc3_nodetoken_signature():
@@ -74,4 +88,3 @@ def test__get_c3_key_token():
 #       #print(spl[0])
 #     else:
 #       sys.stderr.write(response.stderr.decode('utf-8'))
-    
