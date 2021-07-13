@@ -8,6 +8,7 @@ def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
     Returns c3remote type system for python.
 
     """
+    keyauth = False
     if url is None:
         raise ValueError("url cannot be None")
     if tenant is None:
@@ -29,16 +30,29 @@ def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
         user = _get_rsa_user(url)
         if user:
             auth = _get_c3_key_token(c3keyfile, username=user)
+            keyauth = True
 
+    # It might be good to have a try except here...
     exec(src, c3iot.__dict__)
-    c3 = c3iot.C3RemoteLoader.typeSys(
-        url=url,
-        tenant=tenant,
-        tag=tag,
-        mode=mode,
-        auth=auth,
-        define_types=define_types
-    )
+
+    # If auth is not None, retry with auth None if it fails
+    while True:
+        try:
+            c3 = c3iot.C3RemoteLoader.typeSys(
+                url=url,
+                tenant=tenant,
+                tag=tag,
+                mode=mode,
+                auth=auth,
+                define_types=define_types
+            )
+            break
+        except Exception as e:
+            if auth:
+                auth = None
+            else:
+                raise e
+
     return c3
 
 def _get_key(PEM_LOCATION):
