@@ -1,7 +1,53 @@
 import pytest
 import os
+from urllib.error import URLError
 from c3python.c3python import _get_c3_key_token
 from c3python import get_c3
+
+
+def test_get_c3_user_pass(monkeypatch):
+    """
+    Will currently fail is url ,tennat or tag are invalid or none 
+    """
+    c3 = get_c3(
+        os.environ.get('C3_URL'),os.environ.get('C3_TENANT'),os.environ.get('C3_TAG')
+    )
+    assert c3 is not None
+
+# def test_get_c3_user_badurl(monkeypatch):
+#     """
+#     Will currently fail is url ,tennat or tag are invalid or none 
+#     """
+#     monkeypatch.setenv('C3_URL', 'http://craphost:8080')
+#     monkeypatch.setenv('C3_TENANT', 'auser')
+#     monkeypatch.setenv('C3_TAG', 'atag')
+#     pytest.raises(URLError, get_c3(
+#         os.environ.get('C3_URL'),os.environ.get('C3_TENANT'),os.environ.get('C3_TAG')
+#     )
+#     )
+
+def test_get_c3_user_badargs(monkeypatch):
+    """
+    Will currently fail is url ,tennat or tag are invalid or none 
+    """
+    monkeypatch.delenv('C3_URL', raising=False)
+    monkeypatch.setenv('C3_TENANT', 'auser')
+    monkeypatch.setenv('C3_TAG', 'atag')
+    pytest.raises(ValueError, get_c3,
+        os.environ.get('C3_URL'),os.environ.get('C3_TENANT'),os.environ.get('C3_TAG')
+    )
+    monkeypatch.setenv('C3_URL', 'http://craphost:8080')
+    monkeypatch.delenv('C3_TENANT', raising=False)
+    monkeypatch.setenv('C3_TAG', 'atag')
+    pytest.raises(ValueError, get_c3,
+        os.environ.get('C3_URL'),os.environ.get('C3_TENANT'),os.environ.get('C3_TAG')
+    )
+    monkeypatch.setenv('C3_URL', 'http://craphost:8080')
+    monkeypatch.setenv('C3_TENANT', 'auser')
+    monkeypatch.delenv('C3_TAG', raising=False)
+    pytest.raises(ValueError, get_c3,
+        os.environ.get('C3_URL'),os.environ.get('C3_TENANT'),os.environ.get('C3_TAG')
+    )
 
 
 def test__get_c3_key_token():

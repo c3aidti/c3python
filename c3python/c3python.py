@@ -6,7 +6,14 @@ import base64
 def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
     """
     Returns c3remote type system for python.
+
     """
+    if url is None:
+        raise ValueError("url cannot be None")
+    if tenant is None:
+        raise ValueError("tenant cannot be None")
+    if tag is None:
+        raise ValueError("tag cannot be None")
     try:
         from urllib.request import urlopen
     except ImportError:
@@ -15,9 +22,6 @@ def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
     c3iot = ModuleType('c3IoT')
     c3iot.__loader__ = c3iot
     src = urlopen(url + '/public/python/c3remote_bootstrap.py').read()
-    #fmtsrc = src.decode().replace('\\n', '\n').replace('\\t', '\t')
-    #print (fmtsrc)
-
     c3keyfile = os.environ.get('HOME') + '/.c3/c3-rsa'
 
     # use the c3-rsa keyfile, if it exists
@@ -27,7 +31,7 @@ def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
             auth = _get_c3_key_token(c3keyfile, username=user)
 
     exec(src, c3iot.__dict__)
-    return c3iot.C3RemoteLoader.typeSys(
+    c3 = c3iot.C3RemoteLoader.typeSys(
         url=url,
         tenant=tenant,
         tag=tag,
@@ -35,11 +39,11 @@ def get_c3(url, tenant, tag, mode='thick', define_types=True, auth=None):
         auth=auth,
         define_types=define_types
     )
+    return c3
 
-from Crypto.Hash import SHA512
-from Crypto.PublicKey import RSA
-from Crypto.Signature import PKCS1_v1_5
 def _get_key(PEM_LOCATION):
+    from Crypto.PublicKey import RSA
+    from Crypto.Signature import PKCS1_v1_5 
     with open(PEM_LOCATION, 'rb') as secret_file:
         secret=secret_file.read()
         if (secret.startswith(b'-----BEGIN RSA PRIVATE KEY-----') or
@@ -70,6 +74,7 @@ def _get_rsa_user(vanity_url):
     return user
     
 def _get_c3_key_token(keyfile=None, keystring=None, signature_text=None, username=None):
+    from Crypto.Hash import SHA512
     """
     Return the key token for the c3 keyfile.
     No support for keystring yet.
@@ -81,18 +86,12 @@ def _get_c3_key_token(keyfile=None, keystring=None, signature_text=None, usernam
       signature_text = str(int(time()*1000))
     
     key = _get_key(keyfile)
-    #print (signature_text)
-    #data=json.dumps(signature_text)
     h=SHA512.new()
     h.update(signature_text.encode('utf-8'))
     sig = key.sign(h)
     plainsig = base64.b64encode(sig).decode('utf-8')
-    #print(f"pysig:{plainsig}")
-    #tokenString = adminUser + ":" + Buffer.from(signatureText).toString('base64') + ":" + signature;
     tokenstr = f"{username}:{base64.b64encode(signature_text.encode('utf-8')).decode('utf-8')}:{plainsig}"
-    #print(f"pytokenstr:{tokenstr}")
     authtoken = f"c3key {base64.b64encode(tokenstr.encode('utf-8')).decode('utf-8')}"
-    #print(f"pyauthtoken:{authtoken}")
     return authtoken
 
 def EvaluateResultToPandas(result=None, eval_spec=None):
