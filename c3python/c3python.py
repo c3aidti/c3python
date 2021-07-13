@@ -17,7 +17,7 @@ def get_c3(
     keystring=None,
 ):
     """
-    Returns c3remote type system for python.
+    Returns c3remote type system for python from a particular tenant+tag.
 
     todo:
       - add support for keystring
@@ -86,14 +86,6 @@ def _get_key(PEM_LOCATION):
             return PKCS1_v1_5.new(rsa_key)
         else:
             return None
-
-
-def _get_sig(signer, sigtext):
-    """
-    Return the signature.
-    """
-    pass
-
 
 def _get_rsa_user(vanity_url):
     """
