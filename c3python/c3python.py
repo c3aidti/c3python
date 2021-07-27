@@ -15,6 +15,7 @@ def get_c3(
     auth=None,
     keyfile=None,
     keystring=None,
+    username=None,
 ):
     """
     Returns c3remote type system for python from a particular tenant+tag.
@@ -40,14 +41,39 @@ def get_c3(
     c3iot = ModuleType("c3IoT")
     c3iot.__loader__ = c3iot
     src = urlopen(url + "/public/python/c3remote_bootstrap.py").read()
+    
+    if keystring and keyfile:
+        raise ValueError("keyfile and keystring cannot both be specified")
 
+    if not keystring and not keyfile:
+        keyfile = os.getenv("HOME") + "/.c3/c3-rsa"
+
+    # if keystring is not None:
+    if keystring:
+        if username:
+            print("Getting token for keystring + user")
+            auth = _get_c3_key_token(keystring=keystring, username=username)
+        else:
+            raise ValueError("username cannot be None with specified keystring.")
+    else:
+        if keyfile:
+            if not os.path.isfile(keyfile):
+                raise ValueError("keyfile does not exist")
+            # Get user from tag -associated file, IF NOT PROVIDED
+            if not username:
+                username = _get_rsa_user(url)
+            print(f"Getting token from keyfile: {keyfile} for user: {username}")
+            auth = _get_c3_key_token(keyfile=keyfile, username=username)
+        else:
+            raise ValueError("keyfile or keystring must be specified")
+    
     # use the c3-rsa keyfile, if it exists
-    if keyfile is None:
-        keyfile = os.environ.get("HOME") + "/.c3/c3-rsa"
-    if os.path.isfile(keyfile):
-        user = _get_rsa_user(url)
-        if user:
-            auth = _get_c3_key_token(keyfile, username=user)
+    # if keyfile is None and keystring is None:
+    #     keyfile = os.environ.get("HOME") + "/.c3/c3-rsa"
+    #     if os.path.isfile(keyfile):
+    #         user = _get_rsa_user(url)
+    #         if user:
+    #             auth = _get_c3_key_token(keyfile, username=user)
 
     # It might be good to have a try except here...
     exec(src, c3iot.__dict__)
@@ -66,13 +92,13 @@ def get_c3(
             )
             break
         except Exception as e:
+            #raise e
             if auth:
                 auth = None
             else:
                 raise e
 
     return c3
-
 
 def _get_key(PEM_LOCATION):
     with open(PEM_LOCATION, "rb") as secret_file:
@@ -103,7 +129,7 @@ def _get_rsa_user(vanity_url):
         with open(filename, "r") as f:
             user = f.read().rstrip("\n")
     else:
-        user = None
+        raise ValueError("c3-rsa.{}.user not found".format(vanity_url.split("://")[1]))
     return user
 
 
@@ -112,13 +138,21 @@ def _get_c3_key_token(keyfile=None, keystring=None, signature_text=None, usernam
     Return the key token for the c3 keyfile.
     No support for keystring yet.
     """
+
     if not keyfile and not keystring:
         keyfile = os.getenv("HOME") + "/.c3/c3-rsa"
+    if keyfile and keystring:
+        raise ValueError("keyfile and keystring cannot both be specified")
+    
+    if keystring and not keyfile:    
+        rsa_key = RSA.importKey(keystring.encode())
+        key = PKCS1_v1_5.new(rsa_key)
+    if keyfile and not keystring:
+        key = _get_key(keyfile)
 
     if not signature_text:
         signature_text = str(int(time() * 1000))
 
-    key = _get_key(keyfile)
     h = SHA512.new()
     h.update(signature_text.encode("utf-8"))
     sig = key.sign(h)
