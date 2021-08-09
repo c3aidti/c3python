@@ -3,6 +3,7 @@
 This repository contains useful python functions to interact with c3
 deployments.
 
+## get_c3
 The primary use is as follows:
 
 ```
@@ -10,4 +11,28 @@ from c3python get_c3
 c3 = get_c3('<vanity_url>', '<tenant>', '<tag>')
 ```
 
-Of course, use the `help` function for more info.
+Authentication will use c3 key if present and otherwise prompt for username password.
+
+Use the python `help` function for more info about the c3 object and particular types within it.
+
+## Jupyter Seed Data
+
+The `C3JupyterNotebook` class is provided to facilitate the generation of seed data for 
+deploying jupyter notebooks developed using the C3 Jupyter service.  
+
+Example script for generating seed data in the current working directory (e.g. `dti-jupyter/seed`) from a new notebook named: `MyNb.ipynb` on the `tc01` tag of the `dti-jupyter` application:  
+```
+from c3python import get_c3
+from c3python import C3JupyterNotebook
+c3=get_c3(url="https://tc01-dti-jupyter.c3dti.ai",tenant="dti-jupyter", tag="tc01")
+c3nb = C3JupyterNotebook(c3=c3,seed_path=".",name="MyNb.ipynb")
+c3nb.write_jupyter_directory_json()
+c3nb.write_jupyter_seed_json()
+```
+The above script will generate 2 directories if not already present and 2 files:
+```
+$ ls -1 | grep Jupyter
+JupyterDirectory
+JupyterNotebook
+```
+Each directory will contain the appropriate json seed data that can then be provisioned
