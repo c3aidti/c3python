@@ -3,7 +3,13 @@
 This repository contains useful python functions to interact with c3
 deployments.
 
+## Installation
+```
+pip install git+https://github.com/c3aidti/c3python
+```
+
 ## get_c3
+Retrieve the remote python type system from a C3 tag.
 The primary use is as follows:
 
 ```

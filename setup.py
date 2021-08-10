@@ -9,4 +9,5 @@ setup(
     description="Provides helper functions for interacting with c3",
     install_requires=["requests", "pycryptodome"],
     extras_require={"DF": ["pandas"]},
+    entry_points={"console_scripts": ["c3py=c3python.c3py:main"]},
 )
