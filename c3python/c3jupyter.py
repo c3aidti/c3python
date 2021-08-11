@@ -106,7 +106,7 @@ class C3JupyterNotebook(object):
                 json.dump(self.jupyter_directory_json, f, indent=4)
 
 
-    def write_jupyter_seed_json(self):
+    def write_jupyter_notebook_json(self):
         if self.seed_path is None:
             print("Error: must specify seed_path to write seed files")
             return None

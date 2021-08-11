@@ -33,7 +33,7 @@ from c3python import C3JupyterNotebook
 c3=get_c3(url="https://tc01-dti-jupyter.c3dti.ai",tenant="dti-jupyter", tag="tc01")
 c3nb = C3JupyterNotebook(c3=c3,seed_path=".",name="MyNb.ipynb")
 c3nb.write_jupyter_directory_json()
-c3nb.write_jupyter_seed_json()
+c3nb.write_jupyter_notebook_json()
 ```
 The above script will generate 2 directories if not already present and 2 files:
 ```
