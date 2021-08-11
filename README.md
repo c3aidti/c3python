@@ -41,4 +41,18 @@ $ ls -1 | grep Jupyter
 JupyterDirectory
 JupyterNotebook
 ```
-Each directory will contain the appropriate json seed data that can then be provisioned
+Each directory will contain the appropriate json seed data that can then be provisioned.
+
+## Command line utility: `c3py`
+The `c3py` command line utility will be installed to your environment after running `pip install`.  TYo shorten the command options when working wit hthe smae tag, url, tag and tenent setting can be set in the following environment variables:
+```
+C3_URL
+C3_TAG
+C3_TENANT
+```
+Note: command line option override environment variables.  
+
+Example of above jupyter seed operation from command line with environment variables set for `C3_URL`, `C3_TAG` and `C3_TENANT`:
+```
+c3py seed-jupyter --name Untitled.ipynb --seed-dir .
+```
