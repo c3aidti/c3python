@@ -66,14 +66,6 @@ def get_c3(
             auth = _get_c3_key_token(keyfile=keyfile, username=username)
         else:
             raise ValueError("keyfile or keystring must be specified")
-    
-    # use the c3-rsa keyfile, if it exists
-    # if keyfile is None and keystring is None:
-    #     keyfile = os.environ.get("HOME") + "/.c3/c3-rsa"
-    #     if os.path.isfile(keyfile):
-    #         user = _get_rsa_user(url)
-    #         if user:
-    #             auth = _get_c3_key_token(keyfile, username=user)
 
     # It might be good to have a try except here...
     exec(src, c3iot.__dict__)
@@ -81,6 +73,7 @@ def get_c3(
     # If auth is not None, retry with auth None if it fails
     # Note that auth=None implies username password auth
     while True:
+        print("Getting c3 remote object")
         try:
             c3 = c3iot.C3RemoteLoader.typeSys(
                 url=url,
@@ -92,7 +85,7 @@ def get_c3(
             )
             break
         except Exception as e:
-            #raise e
+            raise e
             if auth:
                 auth = None
             else:
