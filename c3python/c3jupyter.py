@@ -20,7 +20,7 @@ class C3JupyterNotebook(object):
         self.path = path
         self.id = id
         self.jupyter_notebook_row = None
-        self.jupyter_seed_json = None
+        self.jupyter_notebook_json = None
         self.jupyter_directory_json = None
 
         if self.c3 is None:
@@ -59,7 +59,7 @@ class C3JupyterNotebook(object):
         if self.path is None:
             self.path = self.jupyter_notebook_row.path
 
-        self.jupyter_seed_json = self.get_jupyter_seed_json()
+        self.jupyter_notebook_json = self.get_jupyter_notebook_json()
         self.jupyter_directory_json = self.get_jupyter_directory_json()
 
 
@@ -71,11 +71,11 @@ class C3JupyterNotebook(object):
         cnt = self.c3.JupyterNotebook.fetchCount({'filter': filter})
         if cnt != 1:
             print("Error: expected 1, got {}".format(cnt))
-            return None
+            raise Exception(f"Error unable to retrive Notebook with filter: {filter}")
         
         return self.c3.JupyterNotebook.fetch({"filter": filter}).objs[0]
 
-    def get_jupyter_seed_json(self):
+    def get_jupyter_notebook_json(self):
         """
         Get the seed data for a jupyter notebook saved to a C3 tag.
         """
@@ -95,23 +95,29 @@ class C3JupyterNotebook(object):
             "writable": writeable,
         }    
     
-    def write_jupyter_directory_json(self):
+    def write_jupyter_directory_json(self, verbose=False):
         if self.seed_path is None:
             print("Error: must specify seed_path to write seed files")
             return None
         if os.path.isdir(self.seed_path):
             if not os.path.isdir(self.seed_path + "/" + "JupyterDirectory"):
                 os.mkdir(self.seed_path + "/" + "JupyterDirectory")
-            with open(self.seed_path + "/" + "JupyterDirectory" + "/" + self.name + ".json", "w") as f:
+            seedfile = self.seed_path + "/" + "JupyterDirectory" + "/" + os.path.splitext(self.name)[0] + ".json"
+            if verbose:
+                print(f"Seeding Jupyter Directory for {self.name} to {seedfile}")
+            with open(seedfile, "w") as f:
                 json.dump(self.jupyter_directory_json, f, indent=4)
 
 
-    def write_jupyter_notebook_json(self):
+    def write_jupyter_notebook_json(self, verbose=False):
         if self.seed_path is None:
             print("Error: must specify seed_path to write seed files")
             return None
         if os.path.isdir(self.seed_path):
             if not os.path.isdir(self.seed_path + "/" + "JupyterNotebook"):
                 os.mkdir(self.seed_path + "/" + "JupyterNotebook")
+            seedfile = self.seed_path + "/" + "JupyterNotebook" + "/" + os.path.splitext(self.name)[0] + ".json"
+            if verbose:
+                print(f"Seeding Jupyter Notebook for {self.name} to {seedfile}")
             with open(self.seed_path + "/" + "JupyterNotebook" + "/" + self.name + ".json", "w") as f:
-                json.dump(self.jupyter_seed_json, f, indent=4)
+                json.dump(self.jupyter_notebook_json, f, indent=4)

@@ -1,5 +1,6 @@
 import argparse
 import os
+import json
 
 from c3python import get_c3
 from c3python import C3JupyterNotebook
@@ -10,6 +11,16 @@ def c3py(args):
 def seed_jupyter(args):
     print("seed-jupyter")
     c3nb = C3JupyterNotebook(c3=c3, seed_path=args.seed_dir, name=args.name, path=args.path, id=args.id)
+
+    print(f"Seed Data for Notebook: {c3nb.name}")
+    print(json.dumps(c3nb.jupyter_notebook_json, indent=4))
+    print(f"Seed Data for Notebook Directory: {c3nb.name}")
+    print(json.dumps(c3nb.jupyter_directory_json, indent=4))
+
+    if args.seed_dir and os.path.exists(args.seed_dir):
+        print("hey")
+        c3nb.write_jupyter_directory_json(verbose=True)
+        c3nb.write_jupyter_notebook_json(verbose=True)
 
 
 def main():
