@@ -86,10 +86,11 @@ class C3JupyterNotebook(object):
         """
         Return a dictionary of the jupyter directory json.
         """
+        pathname = os.path.dirname(self.path)
         return {
-            "id": self.path,
-            "name": self.path,
-            "path": self.path,
+            "id": pathname,
+            "name": pathname,
+            "path": pathname,
             "jupyterContentType": "directory",
             "format": "json",
             "writable": writeable,
