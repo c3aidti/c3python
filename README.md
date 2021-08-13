@@ -56,3 +56,39 @@ Example of above jupyter seed operation from command line with environment varia
 ```
 c3py seed-jupyter --name Untitled.ipynb --seed-dir .
 ```
+
+Usage info for `c3py`:
+```
+$ c3py -h
+usage: c3py [-h] [-e URL] [-t TAG] [-g TENANT] [-d] {seed-jupyter} ...
+
+c3py: Command line utility for helper functions related to C3 development. A URL, TAG and TENANT must be provided either through command line or the
+following environment variables: C3_URL, C3_TAG, C3_TENANT. Command line options for URL, TAG and TENANT take precedence over environment variables.
+Authentication will use the ~/.c3/c3-rsa and corresponding user file key if they exists, otherwise username and password will be prompted for.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -e URL, --url URL     C3 Vanity URL for desired tag.
+  -t TAG, --tag TAG     C3 tag to be used.
+  -g TENANT, --tenant TENANT
+                        C3 tenant to be used.
+  -d, --debug           Enable debug mode.
+
+subcommands:
+  seed-jupyter: Generate json seed data from Jupyter notebook that has been saved to a C3 tag. ONE OF THE FOLLOWING OPTIONS MUST BE PROVIDED: --name,
+  --path or --id.
+  
+$ c3py seed-jupyter -h
+usage: c3py seed-jupyter [-h] [-n NAME] [-p PATH] [-i ID] [-s SEED_DIR] [-w]
+
+Generate json seed data from Jupyter notebook that has been saved to a C3 tag. ONE OF THE FOLLOWING OPTIONS MUST BE PROVIDED: --name, --path or --id.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -n NAME, --name NAME  Name from JupyterNotebook type saved to C3 tag.
+  -p PATH, --path PATH  Path from JupyterNotebook type saved to C3 tag.
+  -i ID, --id ID        Id from JupyterNotebook type saved to C3 tag.
+  -s SEED_DIR, --seed-dir SEED_DIR
+                        Location of local seed directory in which to write Jupyter seed data.
+  -w, --writeable       Store notebooks as writeable.
+```
