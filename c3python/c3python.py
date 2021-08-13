@@ -73,7 +73,6 @@ def get_c3(
     # If auth is not None, retry with auth None if it fails
     # Note that auth=None implies username password auth
     while True:
-        print("Getting c3 remote object")
         try:
             c3 = c3iot.C3RemoteLoader.typeSys(
                 url=url,

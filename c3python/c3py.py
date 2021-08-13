@@ -19,7 +19,7 @@ def seed_jupyter(args):
 
     if args.seed_dir and os.path.exists(args.seed_dir):
         print("hey")
-        c3nb.write_jupyter_directory_json(verbose=True)
+        c3nb.write_jupyter_directory_json(verbose=True, writeable=args.writeable)
         c3nb.write_jupyter_notebook_json(verbose=True)
 
 
@@ -36,6 +36,8 @@ def main():
     seed_jupyter_parser.add_argument('-p', '--path', help='Path to Jupyter Notebook saved to C3 tag.', required=False)
     seed_jupyter_parser.add_argument('-i', '--id', help='Id from JupyterNotebook type of Jupyter Notebook saved to C3 tag.', required=False)
     seed_jupyter_parser.add_argument('-s', '--seed-dir', help='Location of local seed directory in which to write Jupyter seed data.', required=False)
+    seed_jupyter_parser.add_argument('-w', '--writeable', help='Store notebooks as writeable.', default=False,action='store_true', required=False)
+    seed_jupyter_parser.add_argument('-d', '--debug', help='Enable debug mode.', action='store_true', required=False)
     seed_jupyter_parser.set_defaults(func=seed_jupyter)
 
     # Parse the args
@@ -47,11 +49,11 @@ def main():
     if not args.tenant:
         parser.error("C3 tenant is required.")
     # Import C3 type system
-    print(f"\nc3py: Importing C3 typesys from: {args.url}\ntenant: {args.tenant}\ntag: {args.tag}")
+    print(f"\nImporting C3 typesys from:\nurl: {args.url}\ntenant: {args.tenant}\ntag: {args.tag}")
     global c3
     c3 = get_c3(url=args.url, tag=args.tag, tenant=args.tenant)
     info = c3.SystemInformation.about()
-    print(f"Successfully imported types from {args.url} running: C3 version: {info.serverVersion}")
+    print(f"Successfully imported types from {args.url} running: C3 version: {info.serverVersion}\n")
 
     # call function
     args.func(args)

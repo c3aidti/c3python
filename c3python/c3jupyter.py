@@ -2,7 +2,7 @@ import json
 import os
 
 class C3JupyterNotebook(object):
-    def __init__(self, c3=None, seed_path=None, name = None, path = None, id = None):
+    def __init__(self, c3=None, seed_path=None, name = None, path = None, id = None, writeable=False):
         """
         Initialize a C3JupyterNotebook object using a name, if or path.
 
@@ -60,7 +60,7 @@ class C3JupyterNotebook(object):
             self.path = self.jupyter_notebook_row.path
 
         self.jupyter_notebook_json = self.get_jupyter_notebook_json()
-        self.jupyter_directory_json = self.get_jupyter_directory_json()
+        self.jupyter_directory_json = self.get_jupyter_directory_json(writeable=writeable)
 
 
     def get_jupyter_notebook_row(self, filter):
@@ -82,7 +82,7 @@ class C3JupyterNotebook(object):
         nb = self.c3.JupyterNotebook.get(this={'id': self.id})
         return nb.jsonForSeedData()
 
-    def get_jupyter_directory_json(self, writeable=True):
+    def get_jupyter_directory_json(self, writeable=False):
         """
         Return a dictionary of the jupyter directory json.
         """
