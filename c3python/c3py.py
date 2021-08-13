@@ -24,20 +24,33 @@ def seed_jupyter(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Process commands for c3py.')
+    parser = argparse.ArgumentParser(description=
+    """
+    c3py: Command line utility for helper functions related to C3 development.\n
+    A URL, TAG and TENANT must be provided either through command line or the following environment variables:
+    C3_URL, C3_TAG, C3_TENANT. Command line options for URL, TAG and TENANT take precedence over environment variables.
+    Authentication will use the ~/.c3/c3-rsa and corresponding user file key if they exists, otherwise username and password
+    will be prompted for.
+    """)
     parser.add_argument('-e', '--url', help='C3 Vanity URL for desired tag.', default=os.environ.get("C3_URL"))
     parser.add_argument('-t', '--tag', help='C3 tag to be used.', default=os.environ.get("C3_TAG"))
     parser.add_argument('-g', '--tenant', help='C3 tenant to be used.', default=os.environ.get("C3_TENANT"))
+    parser.add_argument('-d', '--debug', help='Enable debug mode.', action='store_true', required=False)
     parser.set_defaults(func=c3py)
 
-    sub_parsers = parser.add_subparsers(help='commands')
-    seed_jupyter_parser = sub_parsers.add_parser('seed-jupyter', help='Seed Jupyter')
-    seed_jupyter_parser.add_argument('-n', '--name', help='Name of Jupyter Notebook saved to C3 tag.', required=False)
-    seed_jupyter_parser.add_argument('-p', '--path', help='Path to Jupyter Notebook saved to C3 tag.', required=False)
-    seed_jupyter_parser.add_argument('-i', '--id', help='Id from JupyterNotebook type of Jupyter Notebook saved to C3 tag.', required=False)
+    sub_parsers = parser.add_subparsers(description="""
+    seed-jupyter: Generate json seed data from Jupyter notebook that has been saved to a C3 tag.
+    ONE OF THE FOLLOWING OPTIONS MUST BE PROVIDED: --name, --path or --id.
+    """)
+    seed_jupyter_parser = sub_parsers.add_parser('seed-jupyter', description="""
+     Generate json seed data from Jupyter notebook that has been saved to a C3 tag.
+    ONE OF THE FOLLOWING OPTIONS MUST BE PROVIDED: --name, --path or --id."""
+    )
+    seed_jupyter_parser.add_argument('-n', '--name', help='Name from JupyterNotebook type saved to C3 tag.', required=False)
+    seed_jupyter_parser.add_argument('-p', '--path', help='Path from JupyterNotebook type saved to C3 tag.', required=False)
+    seed_jupyter_parser.add_argument('-i', '--id', help='Id from JupyterNotebook type saved to C3 tag.', required=False)
     seed_jupyter_parser.add_argument('-s', '--seed-dir', help='Location of local seed directory in which to write Jupyter seed data.', required=False)
     seed_jupyter_parser.add_argument('-w', '--writeable', help='Store notebooks as writeable.', default=False,action='store_true', required=False)
-    seed_jupyter_parser.add_argument('-d', '--debug', help='Enable debug mode.', action='store_true', required=False)
     seed_jupyter_parser.set_defaults(func=seed_jupyter)
 
     # Parse the args
