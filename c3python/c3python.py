@@ -6,6 +6,99 @@ from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA512
 
 
+class C3Python(object):
+    def __init__(self, url, tenant, tag, auth=None, keyfile=None, keystring=None):
+        if url is None:
+            raise ValueError("url cannot be None")
+        if tenant is None:
+            raise ValueError("tenant cannot be None")
+        if tag is None:
+            raise ValueError("tag cannot be None")
+        if keystring and keyfile:
+            raise ValueError("keyfile and keystring cannot both be specified")
+        try:
+            from urllib.request import urlopen
+        except ImportError:
+            from urllib2 import urlopen
+
+        from types import ModuleType
+        self.url = url
+        self.tenant = tenant
+        self.tag = tag
+        self.auth = auth
+        self.keyfile = keyfile
+        self.keystring = keystring
+        self.username = None
+        self.password = None
+        self.c3 = None
+
+        self.c3iot = ModuleType("c3IoT")
+        self.c3iot.__loader__ = self.c3iot
+        src = urlopen(url + "/public/python/c3remote_bootstrap.py").read()
+        # It might be good to have a try except here...
+        exec(src, self.c3iot.__dict__)
+        if not self.auth:
+            self._set_auth()
+
+    def get_conn(self):
+        return self.c3iot.C3RemoteLoader.connect(self.url, self.tenant, self.tag, self.auth)
+    
+    def get_loader(self, define_types=False, action_id=None,mode='thick'):
+        loader = self.c3iot.C3RemoteLoader(url=self.url, tenant=self.tenant, tag=self.tag, auth=self.auth, mode=mode,
+                                action_id=action_id, define_types=define_types)
+        def _download_c3_cli_gzip(self):
+            return self._request('/static/nodejs-apps/cli/cli.tar.gz', 'application/gzip')
+        self.c3iot.C3RemoteLoader.download_c3_cli_gzip = _download_c3_cli_gzip
+
+        return loader
+    
+
+    def _set_auth(self):
+        if not self.keystring and not self.keyfile:
+            self.keyfile = os.getenv("HOME") + "/.c3/c3-rsa"
+
+        # if keystring is not None:
+        if self.keystring:
+            if username:
+                print("Getting token for keystring + user")
+                auth = _get_c3_key_token(keystring=self.keystring, username=username)
+            else:
+                raise ValueError("username cannot be None with specified keystring.")
+        else:
+            if self.keyfile:
+                if not os.path.isfile(self.keyfile):
+                    raise ValueError("keyfile does not exist")
+                # Get user from tag -associated file, IF NOT PROVIDED
+                if not self.username:
+                    self.username = _get_rsa_user(self.url)
+                print(f"Getting token from keyfile: {self.keyfile} for user: {self.username}")
+                self.auth = _get_c3_key_token(keyfile=self.keyfile, username=self.username)
+            else:
+                raise ValueError("keyfile or keystring must be specified")
+    def get_c3(self,mode="thick",define_types=True):
+        # If auth is not None, retry with auth None if it fails
+        # Note that auth=None implies username password auth
+        while True:
+            try:
+                c3 = self.c3iot.C3RemoteLoader.typeSys(
+                    url=self.url,
+                    tenant=self.tenant,
+                    tag=self.tag,
+                    mode=mode,
+                    auth=self.auth,
+                    define_types=define_types,
+                )
+                break
+            except Exception as e:
+                #raise e
+                if self.auth:
+                    self.auth = None
+                else:
+                    raise e
+
+        return c3
+
+
 def get_c3(
     url,
     tenant,
@@ -41,6 +134,8 @@ def get_c3(
     c3iot = ModuleType("c3IoT")
     c3iot.__loader__ = c3iot
     src = urlopen(url + "/public/python/c3remote_bootstrap.py").read()
+    # It might be good to have a try except here...
+    exec(src, c3iot.__dict__)
     
     if keystring and keyfile:
         raise ValueError("keyfile and keystring cannot both be specified")
@@ -67,9 +162,6 @@ def get_c3(
         else:
             raise ValueError("keyfile or keystring must be specified")
 
-    # It might be good to have a try except here...
-    exec(src, c3iot.__dict__)
-
     # If auth is not None, retry with auth None if it fails
     # Note that auth=None implies username password auth
     while True:
@@ -84,7 +176,7 @@ def get_c3(
             )
             break
         except Exception as e:
-            raise e
+            #raise e
             if auth:
                 auth = None
             else:

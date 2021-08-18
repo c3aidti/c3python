@@ -2,7 +2,46 @@ import pytest
 import os
 from urllib.error import URLError
 from c3python.c3python import _get_c3_key_token
-from c3python import get_c3
+from c3python import get_c3, C3Python
+
+C3TAG = os.environ.get('C3_TAG')
+C3URL = os.environ.get('C3_URL')
+C3TENANT = os.environ.get('C3_TENANT')
+
+@pytest.fixture(scope="module")
+def c3py():
+    return C3Python(C3URL, C3TENANT, C3TAG)
+
+class TestC3Python(object):
+    def test_c3iot(self,c3py):
+        """
+        """
+        print(dir(c3py.c3iot))
+
+    def test_c3iot_c3conn(self,c3py):
+        c3conn = c3py.get_conn()
+        #print(dir(c3conn))
+        #print(dir(c3conn.request))
+        stat = c3conn.request(path='/health/1/?info').send().statusCode
+        print(stat)
+        assert stat == 200
+
+    def test_c3iot_get_loader(self,c3py):
+        ldr = c3py.get_loader()
+        print(ldr._tenant)
+        print(ldr._tag)
+        assert ldr._tenant == C3TENANT
+        assert ldr._tag == C3TAG
+
+    def test_c3iot_download_c3_cli_gzip(self,c3py):
+        ldr = c3py.get_loader()
+        cli = ldr.download_c3_cli_gzip()
+        assert cli is not None
+
+    def test_c3iot_get_c3(self,c3py):
+        c3 = c3py.get_c3()
+        assert c3 is not None
+
 
 
 def test_get_c3_user_pass(monkeypatch):
