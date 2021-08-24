@@ -4,13 +4,13 @@ from urllib.error import URLError
 from c3python.c3python import _get_c3_key_token
 from c3python import get_c3, C3Python
 
-C3TAG = os.environ.get('C3_TAG')
-C3URL = os.environ.get('C3_URL')
-C3TENANT = os.environ.get('C3_TENANT')
+# C3TAG = os.environ.get('C3_TAG')
+# C3URL = os.environ.get('C3_URL')
+# C3TENANT = os.environ.get('C3_TENANT')
 
-@pytest.fixture(scope="module")
-def c3py():
-    return C3Python(C3URL, C3TENANT, C3TAG)
+# @pytest.fixture(scope="module")
+# def c3py():
+#     return C3Python(C3URL, C3TENANT, C3TAG)
 
 class TestC3Python(object):
     def test_c3iot(self,c3py):
@@ -26,12 +26,12 @@ class TestC3Python(object):
         print(stat)
         assert stat == 200
 
-    def test_c3iot_get_loader(self,c3py):
+    def test_c3iot_get_loader(self,c3py,c3env):
         ldr = c3py.get_loader()
         print(ldr._tenant)
         print(ldr._tag)
-        assert ldr._tenant == C3TENANT
-        assert ldr._tag == C3TAG
+        assert ldr._tenant == c3env["C3_TENANT"]
+        assert ldr._tag == c3env["C3_TAG"]
 
     def test_c3iot_download_c3_cli_gzip(self,c3py):
         ldr = c3py.get_loader()

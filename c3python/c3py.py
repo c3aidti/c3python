@@ -14,7 +14,7 @@ def seed_jupyter(args):
     c3 = c3py_obj.get_c3()
     info = c3.SystemInformation.about()
     print("seed-jupyter")
-    c3nb = C3JupyterNotebook(c3=c3, seed_path=args.seed_dir, name=args.name, path=args.path, id=args.id)
+    c3nb = C3JupyterNotebook(c3=c3, seed_path=args.seed_dir, name=args.name, path=args.path, id=args.id, writeable=args.writeable)
 
     print(f"Seed Data for Notebook: {c3nb.name}")
     print(json.dumps(c3nb.jupyter_notebook_json, indent=4))
@@ -22,8 +22,7 @@ def seed_jupyter(args):
     print(json.dumps(c3nb.jupyter_directory_json, indent=4))
 
     if args.seed_dir and os.path.exists(args.seed_dir):
-        print("hey")
-        c3nb.write_jupyter_directory_json(verbose=True, writeable=args.writeable)
+        c3nb.write_jupyter_directory_json(verbose=True)
         c3nb.write_jupyter_notebook_json(verbose=True)
 
 def get_c3cli(args,path='.'):
@@ -57,6 +56,7 @@ def main():
     seed_jupyter_parser.add_argument('-n', '--name', help='Name from JupyterNotebook type saved to C3 tag.', required=False)
     seed_jupyter_parser.add_argument('-p', '--path', help='Path from JupyterNotebook type saved to C3 tag.', required=False)
     seed_jupyter_parser.add_argument('-i', '--id', help='Id from JupyterNotebook type saved to C3 tag.', required=False)
+    seed_jupyter_parser.add_argument('-d', '--target-path', help='Target path to save notebook to.', required=False)
     seed_jupyter_parser.add_argument('-s', '--seed-dir', help='Location of local seed directory in which to write Jupyter seed data.', required=False)
     seed_jupyter_parser.add_argument('-w', '--writeable', help='Store notebooks as writeable.', default=False,action='store_true', required=False)
     seed_jupyter_parser.set_defaults(func=seed_jupyter)
