@@ -49,7 +49,7 @@ def main():
     parser.set_defaults(func=c3py)
 
     sub_parsers = parser.add_subparsers(description='')
-    seed_jupyter_parser = sub_parsers.add_parser('seed-jupyter', description="""
+    seed_jupyter_parser = sub_parsers.add_parser('seed-jupyter', parents=[parser], add_help=False, description="""
      Generate json seed data from Jupyter notebook that has been saved to a C3 tag.
     ONE OF THE FOLLOWING OPTIONS MUST BE PROVIDED: --name, --path or --id."""
     )
@@ -61,7 +61,7 @@ def main():
     seed_jupyter_parser.add_argument('-w', '--writeable', help='Store notebooks as writeable.', default=False,action='store_true', required=False)
     seed_jupyter_parser.set_defaults(func=seed_jupyter)
 
-    get_c3cli_parser = sub_parsers.add_parser('get-c3cli', description="""
+    get_c3cli_parser = sub_parsers.add_parser('get-c3cli', parents=[parser], add_help=False, description="""
     Download the C3 CLI tool.
     """)
     get_c3cli_parser.set_defaults(func=get_c3cli)

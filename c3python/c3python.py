@@ -55,7 +55,9 @@ class C3Python(object):
 
     def _set_auth(self):
         if not self.keystring and not self.keyfile:
-            self.keyfile = os.getenv("HOME") + "/.c3/c3-rsa"
+            default_keyfile = os.getenv("HOME") + "/.c3/c3-rsa"
+            if os.path.isfile(default_keyfile):
+                self.keyfile = os.getenv("HOME") + "/.c3/c3-rsa"
 
         # if keystring is not None:
         if self.keystring:
@@ -74,7 +76,8 @@ class C3Python(object):
                 print(f"Getting token from keyfile: {self.keyfile} for user: {self.username}")
                 self.auth = _get_c3_key_token(keyfile=self.keyfile, username=self.username)
             else:
-                raise ValueError("keyfile or keystring must be specified")
+                #raise ValueError("keyfile or keystring must be specified")
+                self.auth = None
     def get_c3(self,mode="thick",define_types=True):
         # If auth is not None, retry with auth None if it fails
         # Note that auth=None implies username password auth
