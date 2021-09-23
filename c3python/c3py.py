@@ -56,7 +56,7 @@ def main():
     seed_jupyter_parser.add_argument('-n', '--name', help='Name from JupyterNotebook type saved to C3 tag.', required=False)
     seed_jupyter_parser.add_argument('-p', '--path', help='Path from JupyterNotebook type saved to C3 tag.', required=False)
     seed_jupyter_parser.add_argument('-i', '--id', help='Id from JupyterNotebook type saved to C3 tag.', required=False)
-    seed_jupyter_parser.add_argument('-d', '--target-path', help='Target path to save notebook to.', required=False)
+    seed_jupyter_parser.add_argument('-tp', '--target-path', help='Target path to save notebook to.', required=False)
     seed_jupyter_parser.add_argument('-s', '--seed-dir', help='Location of local seed directory in which to write Jupyter seed data.', required=False)
     seed_jupyter_parser.add_argument('-w', '--writeable', help='Store notebooks as writeable.', default=False,action='store_true', required=False)
     seed_jupyter_parser.set_defaults(func=seed_jupyter)
