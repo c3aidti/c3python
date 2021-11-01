@@ -13,7 +13,7 @@ Retrieve the remote python type system from a C3 tag.
 The primary use is as follows:
 
 ```
-from c3python get_c3
+from c3python import get_c3
 c3 = get_c3('<vanity_url>', '<tenant>', '<tag>')
 ```
 
