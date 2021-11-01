@@ -24,7 +24,7 @@ Use the python `help` function for more info about the c3 object and particular 
 ## Jupyter Seed Data
 
 The `C3JupyterNotebook` class is provided to facilitate the generation of seed data for 
-deploying jupyter notebooks developed using the C3 Jupyter service.  
+deploying Jupyter notebooks developed using the C3 Jupyter service.  
 
 Example script for generating seed data in the current working directory (e.g. `dti-jupyter/seed`) from a new notebook named: `MyNb.ipynb` on the `tc01` tag of the `dti-jupyter` application:  
 ```
@@ -44,7 +44,7 @@ JupyterNotebook
 Each directory will contain the appropriate json seed data that can then be provisioned.
 
 ## Command line utility: `c3py`
-The `c3py` command line utility will be installed to your environment after running `pip install`.  TYo shorten the command options when working wit hthe smae tag, url, tag and tenent setting can be set in the following environment variables:
+The `c3py` command line utility will be installed to your environment after running `pip install`.  To shorten the command options when working with the same tag, url, tag and tenant setting can be set in the following environment variables:
 ```
 C3_URL
 C3_TAG
@@ -52,7 +52,7 @@ C3_TENANT
 ```
 Note: command line option override environment variables.  
 
-Example of above jupyter seed operation from command line with environment variables set for `C3_URL`, `C3_TAG` and `C3_TENANT`:
+Example of above Jupyter seed operation from command line with environment variables set for `C3_URL`, `C3_TAG` and `C3_TENANT`:
 ```
 c3py seed-jupyter --name Untitled.ipynb --seed-dir .
 ```
