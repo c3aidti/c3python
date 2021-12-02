@@ -250,7 +250,7 @@ def _get_c3_key_token(keyfile=None, keystring=None, signature_text=None, usernam
     authtoken = f"c3key {base64.b64encode(tokenstr.encode('utf-8')).decode('utf-8')}"
     return authtoken
 
-def send_file(file, vanity_url, tenant, tag, api_endpoint, auth_token):
+def send_file(file, vanity_url, tenant, tag, api_endpoint, auth_token, verbose=True):
     """
     Send a file to the c3 server.
     """
@@ -307,7 +307,8 @@ def send_file(file, vanity_url, tenant, tag, api_endpoint, auth_token):
                         break
                     self.readsofar += len(data)
                     percent = self.readsofar * 1e2 / self.totalsize
-                    sys.stderr.write("\r{percent:3.0f}%".format(percent=percent))
+                    if verbose:
+                        sys.stderr.write("\r{percent:3.0f}%".format(percent=percent))
                     yield data
 
         def __len__(self):
