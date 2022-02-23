@@ -142,30 +142,32 @@ def get_c3(
     # It might be good to have a try except here...
     exec(src, c3iot.__dict__)
     
-    if keystring and keyfile:
-        raise ValueError("keyfile and keystring cannot both be specified")
+    if not auth:
 
-    if not keystring and not keyfile:
-        keyfile = os.getenv("HOME") + "/.c3/c3-rsa"
+        if keystring and keyfile:
+            raise ValueError("keyfile and keystring cannot both be specified")
 
-    # if keystring is not None:
-    if keystring:
-        if username:
-            print("Getting token for keystring + user")
-            auth = _get_c3_key_token(keystring=keystring, username=username)
+        if not keystring and not keyfile:
+            keyfile = os.getenv("HOME") + "/.c3/c3-rsa"
+
+        # if keystring is not None:
+        if keystring:
+            if username:
+                print("Getting token for keystring + user")
+                auth = _get_c3_key_token(keystring=keystring, username=username)
+            else:
+                raise ValueError("username cannot be None with specified keystring.")
         else:
-            raise ValueError("username cannot be None with specified keystring.")
-    else:
-        if keyfile:
-            if not os.path.isfile(keyfile):
-                raise ValueError("keyfile does not exist")
-            # Get user from tag -associated file, IF NOT PROVIDED
-            if not username:
-                username = _get_rsa_user(url)
-            print(f"Getting token from keyfile: {keyfile} for user: {username}")
-            auth = _get_c3_key_token(keyfile=keyfile, username=username)
-        else:
-            raise ValueError("keyfile or keystring must be specified")
+            if keyfile:
+                if not os.path.isfile(keyfile):
+                    raise ValueError("keyfile does not exist")
+                # Get user from tag -associated file, IF NOT PROVIDED
+                if not username:
+                    username = _get_rsa_user(url)
+                print(f"Getting token from keyfile: {keyfile} for user: {username}")
+                auth = _get_c3_key_token(keyfile=keyfile, username=username)
+            else:
+                raise ValueError("keyfile or keystring must be specified")
 
     # If auth is not None, retry with auth None if it fails
     # Note that auth=None implies username password auth
