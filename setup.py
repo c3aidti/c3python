@@ -7,7 +7,7 @@ setup(
     # Metadata
     author="Matthew Krafczyk, Darren Adams",
     description="Provides helper functions for interacting with c3",
-    install_requires=["requests", "pycryptodome"],
+    install_requires=["requests", "pycryptodome","azure-mgmt-storage","azure-storage-blob"],
     extras_require={"DF": ["pandas"]},
     entry_points={"console_scripts": ["c3py=c3python.c3py:main"]},
 )

@@ -9,7 +9,7 @@ from Crypto.Hash import SHA512
 
 
 class C3Python(object):
-    def __init__(self, url, tenant, tag, auth=None, keyfile=None, keystring=None):
+    def __init__(self, url, tenant, tag, auth=None, keyfile=None, keystring=None,username=None):
         if url is None:
             raise ValueError("url cannot be None")
         if tenant is None:
@@ -28,9 +28,10 @@ class C3Python(object):
         self.tenant = tenant
         self.tag = tag
         self.auth = auth
+        self.auth_token = None
         self.keyfile = keyfile
         self.keystring = keystring
-        self.username = None
+        self.username = username
         self.password = None
         self.c3 = None
 
@@ -39,7 +40,17 @@ class C3Python(object):
         src = urlopen(url + "/public/python/c3remote_bootstrap.py").read()
         # It might be good to have a try except here...
         exec(src, self.c3iot.__dict__)
-        if not self.auth:
+
+        if auth:
+            if keyfile or keystring:
+                # Here both an auth token AND a keyfile/keystring were specified
+                # store the auth token and try it first
+                self.auth_token = auth
+                try:
+                    self._set_auth()
+                except Exception as e:
+                    print(f"WARNING: the following exception occured when trying to use the keyfile/keystring auth: {e}")
+        else:
             self._set_auth()
 
     def get_conn(self):
@@ -54,7 +65,6 @@ class C3Python(object):
 
         return loader
     
-
     def _set_auth(self):
         if not self.keystring and not self.keyfile:
             default_keyfile = os.getenv("HOME") + "/.c3/c3-rsa"
@@ -63,7 +73,7 @@ class C3Python(object):
 
         # if keystring is not None:
         if self.keystring:
-            if username:
+            if self.username:
                 print("Getting token for keystring + user")
                 auth = _get_c3_key_token(keystring=self.keystring, username=username)
             else:
@@ -80,11 +90,31 @@ class C3Python(object):
             else:
                 #raise ValueError("keyfile or keystring must be specified")
                 self.auth = None
+
     def get_c3(self,mode="thick",define_types=True):
         # If auth is not None, retry with auth None if it fails
         # Note that auth=None implies username password auth
-        while True:
+        if self.auth_token:
+            # If we have an auth token, try it first.  this only happens if BOTH private key
+            # and auth are specified to the constructor
             try:
+                print("Getting C3 client with auth token...")
+                c3 = self.c3iot.C3RemoteLoader.typeSys(
+                    url=self.url,
+                    tenant=self.tenant,
+                    tag=self.tag,
+                    mode=mode,
+                    auth=self.auth_token,
+                    define_types=define_types,
+                )
+            except Exception as e:
+                # If it fails, try keyfile/keystring auth toekn
+                # then retrive a new "regular" auth token
+                # and re-retrive the C3 client with the new auth token
+                # This means getting th client twice, but might help with expired auth tokens
+                # generated from the private key which expire quickely compared to tokens
+                # generated with c3.Authenticator.generateC3AuthToken()
+                print("Getting C3 client with private key auth...")
                 c3 = self.c3iot.C3RemoteLoader.typeSys(
                     url=self.url,
                     tenant=self.tenant,
@@ -93,13 +123,36 @@ class C3Python(object):
                     auth=self.auth,
                     define_types=define_types,
                 )
-                break
-            except Exception as e:
-                #raise e
-                if self.auth:
-                    self.auth = None
-                else:
-                    raise e
+                print("Getting C3 client with auth token...")
+                self.auth_token = c3.Authenticator.generateC3AuthToken()
+                c3 = self.c3iot.C3RemoteLoader.typeSys(
+                    url=self.url,
+                    tenant=self.tenant,
+                    tag=self.tag,
+                    mode=mode,
+                    auth=self.auth,
+                    define_types=define_types,
+                )
+        else:
+
+            while True:
+                try:
+                    print("Getting C3 client...")
+                    c3 = self.c3iot.C3RemoteLoader.typeSys(
+                        url=self.url,
+                        tenant=self.tenant,
+                        tag=self.tag,
+                        mode=mode,
+                        auth=self.auth,
+                        define_types=define_types,
+                    )
+                    break
+                except Exception as e:
+                    #raise e
+                    if self.auth:
+                        self.auth = None
+                    else:
+                        raise e
 
         return c3
 
@@ -122,74 +175,8 @@ def get_c3(
       - add support for keystring
     
     """
-    keyauth = False
-    if url is None:
-        raise ValueError("url cannot be None")
-    if tenant is None:
-        raise ValueError("tenant cannot be None")
-    if tag is None:
-        raise ValueError("tag cannot be None")
-    try:
-        from urllib.request import urlopen
-    except ImportError:
-        from urllib2 import urlopen
-
-    from types import ModuleType
-
-    c3iot = ModuleType("c3IoT")
-    c3iot.__loader__ = c3iot
-    src = urlopen(url + "/public/python/c3remote_bootstrap.py").read()
-    # It might be good to have a try except here...
-    exec(src, c3iot.__dict__)
-    
-    if not auth:
-
-        if keystring and keyfile:
-            raise ValueError("keyfile and keystring cannot both be specified")
-
-        if not keystring and not keyfile:
-            keyfile = os.getenv("HOME") + "/.c3/c3-rsa"
-
-        # if keystring is not None:
-        if keystring:
-            if username:
-                print("Getting token for keystring + user")
-                auth = _get_c3_key_token(keystring=keystring, username=username)
-            else:
-                raise ValueError("username cannot be None with specified keystring.")
-        else:
-            if keyfile:
-                if not os.path.isfile(keyfile):
-                    raise ValueError("keyfile does not exist")
-                # Get user from tag -associated file, IF NOT PROVIDED
-                if not username:
-                    username = _get_rsa_user(url)
-                print(f"Getting token from keyfile: {keyfile} for user: {username}")
-                auth = _get_c3_key_token(keyfile=keyfile, username=username)
-            else:
-                raise ValueError("keyfile or keystring must be specified")
-
-    # If auth is not None, retry with auth None if it fails
-    # Note that auth=None implies username password auth
-    while True:
-        try:
-            c3 = c3iot.C3RemoteLoader.typeSys(
-                url=url,
-                tenant=tenant,
-                tag=tag,
-                mode=mode,
-                auth=auth,
-                define_types=define_types,
-            )
-            break
-        except Exception as e:
-            #raise e
-            if auth:
-                auth = None
-            else:
-                raise e
-
-    return c3
+    c3py = C3Python(url,tenant,tag,auth=auth,keyfile=keyfile,keystring=keystring)
+    return c3py.get_c3(mode=mode,define_types=define_types)
 
 def _get_key(PEM_LOCATION):
     with open(PEM_LOCATION, "rb") as secret_file:
