@@ -17,11 +17,24 @@ from c3python import get_c3
 c3 = get_c3('<vanity_url>', '<tenant>', '<tag>')
 ```
 
-Authentication will use c3 key if present and otherwise prompt for username password.
+Authentication will use c3 key\* if present and otherwise prompt for username password.
 
-Use the python `help` function for more info about the c3 object and particular types within it.
+Use the python `help` function for more info about the c3 object and particular types within it.  
 
-## Jupyter Seed Data
+\* A private key for use with a c3 tag cn be obtained in a varaity of ways.  The "key" to making it work with a tag is to add the 
+cooresponding public key to the user who will be accessing the tag.  This is done via the `publiKey` field on the `User` type.
+
+If using the c3 command line application:  
+```
+/path/to/my/c3-cli/c3 key -t tenant -g tag -e https://tag-tenant.url -u 'myUser' -p 'myPass'
+```
+
+Otherwise, you can manually generate keys as follows, then update the `publibKey` field and mentioned above:  
+```
+openssl genrsa -out mykey.pem 2048
+```
+
+# Jupyter Seed Data
 
 The `C3JupyterNotebook` class is provided to facilitate the generation of seed data for 
 deploying Jupyter notebooks developed using the C3 Jupyter service.  
