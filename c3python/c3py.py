@@ -32,6 +32,58 @@ def get_c3cli(args,path='.'):
     with open(path+'/'+'cli.tar.gz','wb') as f:
         f.write(cli)
 
+def prov(args,path='.'):
+    import pathlib
+    import io
+    import base64
+    from zipfile import ZipFile
+    
+    print("prov")
+    directory = pathlib.Path(path)
+    #directory = pathlib.Path(path+ '/' + args.package)
+    print (directory)
+    if not directory.exists():
+        raise Exception("Prov directory does not exist")
+
+    # Create a ZipFile object in memory
+    mem_file = io.BytesIO()
+    with ZipFile(mem_file, mode='w') as zf:
+        # for file in directory.glob('**/*'):
+        for file in directory.rglob('*'):
+            if file.is_file():
+                zf.write(file)
+    print (zf.namelist())
+    zipped = base64.b64encode(mem_file.getvalue()).decode('utf-8')
+    #zipped = base64.b64encode(mem_file.getvalue())
+    #print(zipped)
+
+    # Get the C3 Python object
+    c3 = c3py_obj.get_c3()
+    info = c3.SystemInformation.about()
+    print(f"Successfully imported types from {args.url} running: C3 version: {info.serverVersion}\n")
+
+    # Spec the deployment
+    spec = c3.ProvisionSpec(
+        infos = {"tool": "c3py"},
+        command= "tag",
+        deployAction= "provision",
+        deployToFacades= False,
+        doNotRevertStateOnError= False,
+        doNotSuppressWarnings= False,
+        doNotWaitForRunningActions= False,
+        package= args.package,
+        reset= args.reset,
+        tag= args.tag,
+        tenant= args.tenant,
+        test= False,
+        zipContent=zipped
+    )
+    #print(spec)
+
+    # Deploy the package
+    result = c3.Tenant.deploy(spec=spec)
+
+    print (result)
 
 def main():
     parser = argparse.ArgumentParser(description=
@@ -48,6 +100,8 @@ def main():
     parser.add_argument('-d', '--debug', help='Enable debug mode.', action='store_true', required=False)
     parser.set_defaults(func=c3py)
 
+    # Subcommands
+    # seed-jupyter
     sub_parsers = parser.add_subparsers(description='')
     seed_jupyter_parser = sub_parsers.add_parser('seed-jupyter', parents=[parser], add_help=False, description="""
      Generate json seed data from Jupyter notebook that has been saved to a C3 tag.
@@ -61,10 +115,19 @@ def main():
     seed_jupyter_parser.add_argument('-w', '--writeable', help='Store notebooks as writeable.', default=False,action='store_true', required=False)
     seed_jupyter_parser.set_defaults(func=seed_jupyter)
 
+    # get-c3cli
     get_c3cli_parser = sub_parsers.add_parser('get-c3cli', parents=[parser], add_help=False, description="""
     Download the C3 CLI tool.
     """)
     get_c3cli_parser.set_defaults(func=get_c3cli)
+
+    # get-c3cli
+    prov_parser = sub_parsers.add_parser('prov', parents=[parser], add_help=False, description="""
+    Provision C3 code.
+    """)
+    prov_parser.add_argument('-c', '--package', help='Name of Package to provision.', required=True)
+    prov_parser.add_argument('-R', '--reset', help='Reset Tag option.', required=False, default=False, action='store_true')
+    prov_parser.set_defaults(func=prov)
 
     # Parse the args
     args = parser.parse_args()
