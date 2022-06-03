@@ -1,28 +1,6 @@
 import os
 from c3python import get_c3
 from c3python import AzureBlob
-
-def updateFileMetadata(c3,objFiles,fileField):
-        updates = []
-        fileType = list(objFiles.values())[0]['obj'].toJson()['type']
-        for oDict in objFiles.values():
-            #print(oDict['url'])
-            obj = oDict['obj']
-            url = oDict['url']
-            
-            updated = getattr(c3,fileType)(**{'id':obj.id})
-            setattr(updated,fileField,c3.File(**{'url': url}).readMetadata())
-            if not getattr(updated,fileField).contentLength:
-                print(url)
-                setattr(updated,fileField, getattr(updated,fileField).fs().listFiles(url).files[0].toJson())
-            updates.append(updated)
-
-        print(f"Merging updates for {len(updates)} files.")
-        _ = getattr(c3,fileType).mergeBatch(updates)
-        return {
-                    o.id:{'obj':o,'url':getattr(o, fileField).url}
-                    for o in updates if getattr(o, fileField)
-                }
         
 def retry_c3(c3m,retries=3):
     left = {'retries': retries}
@@ -71,6 +49,7 @@ class C3Migrate:
         self.tryFetch = retry_c3(self,retrys)(self.tryFetch)
         self.tryRemoveAll = retry_c3(self,retrys)(self.tryRemoveAll)
         self.tryMergeBatch = retry_c3(self,retrys)(self.tryMergeBatch)
+        self.tryUpdateFileMetadata = retry_c3(self,retrys)(self.tryUpdateFileMetadata)
 
         self.set_c3_objects()
 
@@ -85,13 +64,41 @@ class C3Migrate:
 
     @staticmethod
     def tryRemoveAll(c3,typeName):
-        print(f'Removing {typeName} data from {c3.connection.url()}')
-        return getattr(c3,typeName).removeAll()
+        print(f'Removing {typeName} data from {c3.connection.url()}...', end='')
+        result = getattr(c3,typeName).removeAll()
+        print(" Done.")
+        return result
 
     @staticmethod
     def tryMergeBatch(c3,typeName,objs):
-        print(f"Merging {len(objs)} to {typeName}")
-        return getattr(c3,typeName).mergeBatch(objs.toJson())
+        print(f"Merging {len(objs)} to {typeName}...", end='')
+        result = getattr(c3,typeName).mergeBatch(objs.toJson())
+        print(" Done.")
+        return result
+
+    @staticmethod
+    def tryUpdateFileMetadata(c3,objFiles,fileField):
+        updates = []
+        fileType = list(objFiles.values())[0]['obj'].toJson()['type']
+        print(f"Reading metadata for {len(objFiles)} {fileType} files...", end="")
+        for oDict in objFiles.values():
+            #print(oDict['url'])
+            obj = oDict['obj']
+            url = oDict['url']
+            
+            updated = getattr(c3,fileType)(**{'id':obj.id})
+            setattr(updated,fileField,c3.File(**{'url': url}).readMetadata())
+            if not getattr(updated,fileField).contentLength:
+                #print(url)
+                setattr(updated,fileField, getattr(updated,fileField).fs().listFiles(url).files[0].toJson())
+            updates.append(updated)
+        print(f" Done.")
+        print(f"Merging updates for {len(updates)} files.")
+        _ = getattr(c3,fileType).mergeBatch(updates)
+        return {
+                    o.id:{'obj':o,'url':getattr(o, fileField).url}
+                    for o in updates if getattr(o, fileField)
+                }
 
     def set_c3_objects(self):
         self.c3_from = get_c3(url=self.from_url, tenant=self.from_tenant, tag=self.from_tag, keyfile=self.from_keyfile, auth=self.from_auth)
@@ -218,14 +225,16 @@ class C3Migrate:
 
             #end test nested mods so far...
             
-            # Generate signed urls (should go in loop)
+            # Generate signed urls)
+            print(f"Generating signed urls for {len(objs)*len(file_fields)} files...",end="")
             fromSignedFiles = [
                 self.fromFS.generatePresignedUrl(getattr(o, field).url)
                 for o in objs
                 for field in file_fields if getattr(o, field)
             ]
+            print(" Done.")
 
-            # Generate list destination Urls (should go in loop)
+            # Generate list destination Urls
             toFiles = [
                 getattr(o, field).url.replace(fromMountUrl,toMountUrl).split(prefix+toContainer+'/')[1]
                 for o in objs
@@ -237,31 +246,35 @@ class C3Migrate:
                 # print(len(fromSignedFiles))
                 print(len(toFiles))
             else:
+                print(f"Copying {len(fromSignedFiles)} files...")
                 self.copyObj.copyUrls(fromSignedFiles, toFiles)
+                print("Done copying files.")
 
             # Update c3 objects with new urls and metadata
             print("Update Metadata")
             for field in file_fields:
-                print(f"Migrating {typeName}.{field}")
+                #print(f"Migrating {typeName}.{field}")
                 objFiles = {
                     o.id:{'obj':o,'url':getattr(o, field).url.split(fromMountUrl)[1]}
                     for o in objs if getattr(o, field)
                 }
                 if dry_run:
                     print(objFiles)
-                try:
-                    updatedObjFiles = updateFileMetadata(self.c3_to,objFiles,field)
-                    if dry_run:
-                        print("Updated Obj Files:")
-                        print(updatedObjFiles)
-                except RuntimeError:
-                    if self.tries < self.retrys:
-                        self.tries += 1
-                        print(f'Retrying {self.tries}')
-                        self.set_c3_objects()
-                        updatedObjFiles = updateFileMetadata(self.c3_to,objFiles,field)
-                # for o in updatedObjs:
-                #     print(f"Updated {o.id}")
+
+                updatedObjFiles = self.tryUpdateFileMetadata(self.c3_to, objFiles, field)
+                # try:
+                #     updatedObjFiles = updateFileMetadata(self.c3_to,objFiles,field)
+                #     if dry_run:
+                #         print("Updated Obj Files:")
+                #         print(updatedObjFiles)
+                # except RuntimeError:
+                #     if self.tries < self.retrys:
+                #         self.tries += 1
+                #         print(f'Retrying {self.tries}')
+                #         self.set_c3_objects()
+                #         updatedObjFiles = updateFileMetadata(self.c3_to,objFiles,field)
+                # # for o in updatedObjs:
+                # #     print(f"Updated {o.id}")
                 print(f"Comparing source and dest file size and MD5")
                 for id,oDict in updatedObjFiles.items():
                     #print(oDict['url'])

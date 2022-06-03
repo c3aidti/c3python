@@ -137,7 +137,7 @@ class C3Python(object):
 
             while True:
                 try:
-                    print(f"Getting C3 client for {self.url}...")
+                    print(f"Getting C3 client for {self.url}...", end="")
                     c3 = self.c3iot.C3RemoteLoader.typeSys(
                         url=self.url,
                         tenant=self.tenant,
@@ -146,6 +146,7 @@ class C3Python(object):
                         auth=self.auth,
                         define_types=define_types,
                     )
+                    print(" Done.")
                     break
                 except Exception as e:
                     #raise e
