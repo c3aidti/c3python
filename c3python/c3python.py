@@ -98,7 +98,7 @@ class C3Python(object):
             # If we have an auth token, try it first.  this only happens if BOTH private key
             # and auth are specified to the constructor
             try:
-                print("Getting C3 client with auth token...")
+                print(f"Getting C3 client with auth token for {self.url}...")
                 c3 = self.c3iot.C3RemoteLoader.typeSys(
                     url=self.url,
                     tenant=self.tenant,
@@ -114,7 +114,7 @@ class C3Python(object):
                 # This means getting th client twice, but might help with expired auth tokens
                 # generated from the private key which expire quickely compared to tokens
                 # generated with c3.Authenticator.generateC3AuthToken()
-                print("Getting C3 client with private key auth...")
+                print(f"Getting C3 client with private key auth for {self.url}...")
                 c3 = self.c3iot.C3RemoteLoader.typeSys(
                     url=self.url,
                     tenant=self.tenant,
@@ -123,7 +123,7 @@ class C3Python(object):
                     auth=self.auth,
                     define_types=define_types,
                 )
-                print("Getting C3 client with auth token...")
+                print(f"Getting C3 client with auth token for {self.url}...")
                 self.auth_token = c3.Authenticator.generateC3AuthToken()
                 c3 = self.c3iot.C3RemoteLoader.typeSys(
                     url=self.url,
@@ -137,7 +137,7 @@ class C3Python(object):
 
             while True:
                 try:
-                    print("Getting C3 client...")
+                    print(f"Getting C3 client for {self.url}...")
                     c3 = self.c3iot.C3RemoteLoader.typeSys(
                         url=self.url,
                         tenant=self.tenant,
