@@ -29,9 +29,10 @@ If using the c3 command line application:
 /path/to/my/c3-cli/c3 key -t tenant -g tag -e https://tag-tenant.url -u 'myUser' -p 'myPass'
 ```
 
-Otherwise, you can manually generate keys as follows, then update the `publibKey` field and mentioned above:  
+Otherwise, you can manually generate keys as follows, then update the `publicKey` field as mentioned above:  
 ```
-openssl genrsa -out mykey.pem 2048
+openssl genrsa -out c3-rsa 2048
+openssl rsa -in c3-rsa-pubout > c3-rsa.pub
 ```
 
 # Jupyter Seed Data
