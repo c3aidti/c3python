@@ -32,7 +32,7 @@ If using the c3 command line application:
 Otherwise, you can manually generate keys as follows, then update the `publicKey` field as mentioned above:  
 ```
 openssl genrsa -out c3-rsa 2048
-openssl rsa -in c3-rsa-pubout > c3-rsa.pub
+openssl rsa -in c3-rsa-pubout -pubout > c3-rsa.pub
 ```
 
 # Jupyter Seed Data
