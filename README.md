@@ -21,8 +21,8 @@ Authentication will use c3 key\* if present and otherwise prompt for username pa
 
 Use the python `help` function for more info about the c3 object and particular types within it.  
 
-\* A private key for use with a c3 tag cn be obtained in a varaity of ways.  The "key" to making it work with a tag is to add the 
-cooresponding public key to the user who will be accessing the tag.  This is done via the `publiKey` field on the `User` type.
+\* A private key for use with a c3 tag can be obtained in a variety of ways.  To allow a c3 tag to be accessed with the private key, add the 
+coresponding public key to the `User` entry of the user whom will be accessing the tag.  This is done via the `publiKey` field on the `User` type.
 
 If using the c3 command line application:  
 ```
