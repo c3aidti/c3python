@@ -53,6 +53,13 @@ class C3Python(object):
         else:
             self._set_auth()
 
+        # Set the auth_token always because the timeout is much longer.
+        # Note this is a simepl fix relying on login in the get_c3 method.
+        # If this proves durable, we can remove the auth_token from the
+        # constructor and just use the auth field.
+        # Then simplify the get_c3 method.
+        self.auth_token = self._get_C3AuthToken()
+
     def get_conn(self):
         return self.c3iot.C3RemoteLoader.connect(self.url, self.tenant, self.tag, self.auth)
     
@@ -64,6 +71,14 @@ class C3Python(object):
         self.c3iot.C3RemoteLoader.download_c3_cli_gzip = _download_c3_cli_gzip
 
         return loader
+    
+    def _get_C3AuthToken(self):
+        headers = {'content-type': 'application/json', 'accept': 'application/json', 'Authorization': self.auth}
+        c3_type = "Authenticator"
+        action = "generateC3AuthToken"
+        request_url = self.url + "/" + "api/1" + "/" + self.tenant + "/" + self.tag + "/" + c3_type + "?" + "action=" + action
+        result = requests.get(request_url, headers=headers)
+        return result.json()
     
     def _set_auth(self):
         if not self.keystring and not self.keyfile:
