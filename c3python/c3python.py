@@ -3,10 +3,12 @@ import requests
 import sys
 from time import time
 import base64
+from c3python.applogger import getmylogger
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA512
 
+log = getmylogger(__name__)
 
 class C3Python(object):
     def __init__(self, url, tenant, tag, auth=None, keyfile=None, keystring=None,username=None):
@@ -89,7 +91,7 @@ class C3Python(object):
         # if keystring is not None:
         if self.keystring:
             if self.username:
-                print("Getting token for keystring + user")
+                log.info("Getting token for keystring + user")
                 auth = _get_c3_key_token(keystring=self.keystring, username=username)
             else:
                 raise ValueError("username cannot be None with specified keystring.")
@@ -100,7 +102,7 @@ class C3Python(object):
                 # Get user from tag -associated file, IF NOT PROVIDED
                 if not self.username:
                     self.username = _get_rsa_user(self.url)
-                print(f"Getting token from keyfile: {self.keyfile} for user: {self.username}")
+                log.info(f"Getting token from keyfile: {self.keyfile} for user: {self.username}")
                 self.auth = _get_c3_key_token(keyfile=self.keyfile, username=self.username)
             else:
                 #raise ValueError("keyfile or keystring must be specified")
@@ -113,7 +115,7 @@ class C3Python(object):
             # If we have an auth token, try it first.  this only happens if BOTH private key
             # and auth are specified to the constructor
             try:
-                print(f"Getting C3 client with auth token for {self.url}...")
+                log.info(f"Getting C3 client with auth token for {self.url}...")
                 c3 = self.c3iot.C3RemoteLoader.typeSys(
                     url=self.url,
                     tenant=self.tenant,
@@ -129,7 +131,7 @@ class C3Python(object):
                 # This means getting th client twice, but might help with expired auth tokens
                 # generated from the private key which expire quickely compared to tokens
                 # generated with c3.Authenticator.generateC3AuthToken()
-                print(f"Getting C3 client with private key auth for {self.url}...")
+                log.info(f"Getting C3 client with private key auth for {self.url}...")
                 c3 = self.c3iot.C3RemoteLoader.typeSys(
                     url=self.url,
                     tenant=self.tenant,
@@ -138,7 +140,7 @@ class C3Python(object):
                     auth=self.auth,
                     define_types=define_types,
                 )
-                print(f"Getting C3 client with auth token for {self.url}...")
+                log.info(f"Getting C3 client with auth token for {self.url}...")
                 self.auth_token = c3.Authenticator.generateC3AuthToken()
                 c3 = self.c3iot.C3RemoteLoader.typeSys(
                     url=self.url,
@@ -152,7 +154,7 @@ class C3Python(object):
 
             while True:
                 try:
-                    print(f"Getting C3 client for {self.url}...", end="")
+                    log.info(f"Getting C3 client for {self.url}...", end="")
                     c3 = self.c3iot.C3RemoteLoader.typeSys(
                         url=self.url,
                         tenant=self.tenant,
@@ -161,7 +163,6 @@ class C3Python(object):
                         auth=self.auth,
                         define_types=define_types,
                     )
-                    print(" Done.")
                     break
                 except Exception as e:
                     #raise e
