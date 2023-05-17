@@ -46,6 +46,7 @@ def main():
     parser.add_argument('-t', '--tag', help='C3 tag to be used.', default=os.environ.get("C3_TAG"))
     parser.add_argument('-g', '--tenant', help='C3 tenant to be used.', default=os.environ.get("C3_TENANT"))
     parser.add_argument('-d', '--debug', help='Enable debug mode.', action='store_true', required=False)
+    parser.add_argument('-a', '--auth', help='C3 Auth token.', default=None, required=False)
     parser.set_defaults(func=c3py)
 
     sub_parsers = parser.add_subparsers(description='')
@@ -77,7 +78,7 @@ def main():
     # Import C3 type system
     print(f"\nImporting C3 typesys from:\nurl: {args.url}\ntenant: {args.tenant}\ntag: {args.tag}")
     global c3py_obj
-    c3py_obj = C3Python(url=args.url, tag=args.tag, tenant=args.tenant)
+    c3py_obj = C3Python(url=args.url, tag=args.tag, tenant=args.tenant,auth_token=args.auth, debug=args.debug)
     #c3 = get_c3(url=args.url, tag=args.tag, tenant=args.tenant)
     
 

@@ -11,7 +11,7 @@ from Crypto.Hash import SHA512
 log = getmylogger(__name__)
 
 class C3Python(object):
-    def __init__(self, url, tenant, tag, auth=None, keyfile=None, keystring=None,username=None):
+    def __init__(self, url, tenant, tag, auth=None, keyfile=None, keystring=None,username=None, userfile=None,debug=False, auth_token=None):
         if url is None:
             raise ValueError("url cannot be None")
         if tenant is None:
@@ -20,20 +20,24 @@ class C3Python(object):
             raise ValueError("tag cannot be None")
         if keystring and keyfile:
             raise ValueError("keyfile and keystring cannot both be specified")
+        if userfile and username:
+            raise ValueError("userfile and username cannot both be specified")
         try:
             from urllib.request import urlopen
         except ImportError:
             from urllib2 import urlopen
 
         from types import ModuleType
+        print("keyfile={keyfile} keystring={keystring} username={username}".format(keyfile=keyfile, keystring=keystring, username=username))
         self.url = url
         self.tenant = tenant
         self.tag = tag
         self.auth = auth
-        self.auth_token = None
+        self.auth_token = auth_token
         self.keyfile = keyfile
         self.keystring = keystring
         self.username = username
+        self.userfile = userfile
         self.password = None
         self.c3 = None
 
@@ -52,15 +56,20 @@ class C3Python(object):
                     self._set_auth()
                 except Exception as e:
                     print(f"WARNING: the following exception occured when trying to use the keyfile/keystring auth: {e}")
+        elif self.auth_token:
+            self.auth = self.auth_token
         else:
             self._set_auth()
 
-        # Set the auth_token always because the timeout is much longer.
+        # ALWAYS set the auth_token because the timeout is much longer.
         # Note this is a simepl fix relying on login in the get_c3 method.
         # If this proves durable, we can remove the auth_token from the
         # constructor and just use the auth field.
         # Then simplify the get_c3 method.
-        self.auth_token = self._get_C3AuthToken()
+        if self.auth_token:
+            self.auth = self.auth_token
+        else:
+            self.auth_token = self._get_C3AuthToken()
 
     def get_conn(self):
         return self.c3iot.C3RemoteLoader.connect(self.url, self.tenant, self.tag, self.auth)
@@ -75,12 +84,17 @@ class C3Python(object):
         return loader
     
     def _get_C3AuthToken(self):
+        #print(self.auth)
         headers = {'content-type': 'application/json', 'accept': 'application/json', 'Authorization': self.auth}
         c3_type = "Authenticator"
         action = "generateC3AuthToken"
         request_url = self.url + "/" + "api/1" + "/" + self.tenant + "/" + self.tag + "/" + c3_type + "?" + "action=" + action
         result = requests.get(request_url, headers=headers)
-        return result.json()
+        if result.status_code == 200:
+            return result.json()
+        else:
+            print("Error: " + str(result.status_code))
+            raise Exception("Failed to get C3AuthToken")
     
     def _set_auth(self):
         if not self.keystring and not self.keyfile:
@@ -103,6 +117,8 @@ class C3Python(object):
                 if not self.username:
                     self.username = _get_rsa_user(self.url)
                 log.info(f"Getting token from keyfile: {self.keyfile} for user: {self.username}")
+                print(f"Getting token from keyfile: {self.keyfile} for user: {self.username}")
+
                 self.auth = _get_c3_key_token(keyfile=self.keyfile, username=self.username)
             else:
                 #raise ValueError("keyfile or keystring must be specified")
@@ -114,42 +130,55 @@ class C3Python(object):
         if self.auth_token:
             # If we have an auth token, try it first.  this only happens if BOTH private key
             # and auth are specified to the constructor
-            try:
-                log.info(f"Getting C3 client with auth token for {self.url}...")
-                c3 = self.c3iot.C3RemoteLoader.typeSys(
-                    url=self.url,
-                    tenant=self.tenant,
-                    tag=self.tag,
-                    mode=mode,
-                    auth=self.auth_token,
-                    define_types=define_types,
-                )
-            except Exception as e:
-                # If it fails, try keyfile/keystring auth toekn
-                # then retrive a new "regular" auth token
-                # and re-retrive the C3 client with the new auth token
-                # This means getting th client twice, but might help with expired auth tokens
-                # generated from the private key which expire quickely compared to tokens
-                # generated with c3.Authenticator.generateC3AuthToken()
-                log.info(f"Getting C3 client with private key auth for {self.url}...")
-                c3 = self.c3iot.C3RemoteLoader.typeSys(
-                    url=self.url,
-                    tenant=self.tenant,
-                    tag=self.tag,
-                    mode=mode,
-                    auth=self.auth,
-                    define_types=define_types,
-                )
-                log.info(f"Getting C3 client with auth token for {self.url}...")
-                self.auth_token = c3.Authenticator.generateC3AuthToken()
-                c3 = self.c3iot.C3RemoteLoader.typeSys(
-                    url=self.url,
-                    tenant=self.tenant,
-                    tag=self.tag,
-                    mode=mode,
-                    auth=self.auth,
-                    define_types=define_types,
-                )
+            log.info(f"Getting C3 client with auth token for {self.url}...")
+            print(f"Getting C3 client with auth token for {self.url}...")
+
+            # print(self.auth_token)
+            c3 = self.c3iot.C3RemoteLoader.typeSys(
+                url=self.url,
+                tenant=self.tenant,
+                tag=self.tag,
+                mode=mode,
+                auth=self.auth_token,
+                define_types=define_types,
+            )
+            # try:
+            #     log.info(f"Getting C3 client with auth token for {self.url}...")
+            #     print(self.auth_token)
+            #     c3 = self.c3iot.C3RemoteLoader.typeSys(
+            #         url=self.url,
+            #         tenant=self.tenant,
+            #         tag=self.tag,
+            #         mode=mode,
+            #         auth=self.auth_token,
+            #         define_types=define_types,
+            #     )
+            # except Exception as e:
+            #     # If it fails, try keyfile/keystring auth toekn
+            #     # then retrive a new "regular" auth token
+            #     # and re-retrive the C3 client with the new auth token
+            #     # This means getting th client twice, but might help with expired auth tokens
+            #     # generated from the private key which expire quickely compared to tokens
+            #     # generated with c3.Authenticator.generateC3AuthToken()
+            #     log.info(f"Getting C3 client with private key auth for {self.url}...")
+            #     c3 = self.c3iot.C3RemoteLoader.typeSys(
+            #         url=self.url,
+            #         tenant=self.tenant,
+            #         tag=self.tag,
+            #         mode=mode,
+            #         auth=self.auth,
+            #         define_types=define_types,
+            #     )
+            #     log.info(f"Getting C3 client with auth token for {self.url}...")
+            #     self.auth_token = c3.Authenticator.generateC3AuthToken()
+            #     c3 = self.c3iot.C3RemoteLoader.typeSys(
+            #         url=self.url,
+            #         tenant=self.tenant,
+            #         tag=self.tag,
+            #         mode=mode,
+            #         auth=self.auth,
+            #         define_types=define_types,
+            #     )
         else:
 
             while True:
@@ -181,6 +210,7 @@ def get_c3(
     mode="thick",
     define_types=True,
     auth=None,
+    auth_token=None,
     keyfile=None,
     keystring=None,
     username=None,
@@ -192,7 +222,7 @@ def get_c3(
       - add support for keystring
     
     """
-    c3py = C3Python(url,tenant,tag,auth=auth,keyfile=keyfile,keystring=keystring)
+    c3py = C3Python(url,tenant,tag,auth=auth,auth_token=auth_token,keyfile=keyfile,keystring=keystring,username=username)
     return c3py.get_c3(mode=mode,define_types=define_types)
 
 def _get_key(PEM_LOCATION):
@@ -220,6 +250,7 @@ def _get_rsa_user(vanity_url):
         + vanity_url.split("://")[1]
         + ".user"
     )
+    print (filename)
     if os.path.isfile(filename):
         with open(filename, "r") as f:
             user = f.read().rstrip("\n")

@@ -19,8 +19,8 @@ class CopyUrlsToContainer:
         toBlobs = []
         stats = []
         for i, fromUrl in enumerate(fromUrlList):
-            # print(fromUrl)
-            # print(toUrlList[i])
+            # print(f"1: {fromUrl}")
+            # print(f"2: {toUrlList[i]}")
             to_blob = self.toBlobServiceClient.get_blob_client(self.toContainer, toUrlList[i])
             to_blob.start_copy_from_url(fromUrl)
             toBlobs.append(to_blob)
