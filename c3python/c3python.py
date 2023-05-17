@@ -47,7 +47,12 @@ class C3Python(object):
         # It might be good to have a try except here...
         exec(src, self.c3iot.__dict__)
 
-        if auth:
+        # ALWAYS set the auth_token because the timeout is much longer.
+        # Note this is a simepl fix relying on login in the get_c3 method.
+        # If this proves durable, we can remove the auth_token from the
+        # constructor and just use the auth field.
+        # Then simplify the get_c3 method.
+        if auth or keyfile or keystring:
             if keyfile or keystring:
                 # Here both an auth token AND a keyfile/keystring were specified
                 # store the auth token and try it first
@@ -56,20 +61,22 @@ class C3Python(object):
                     self._set_auth()
                 except Exception as e:
                     print(f"WARNING: the following exception occured when trying to use the keyfile/keystring auth: {e}")
-        elif self.auth_token:
-            self.auth = self.auth_token
+            elif self.auth_token:
+                self.auth = self.auth_token
+            else:
+                self._set_auth()
+            if self.auth_token:
+                self.auth = self.auth_token
+            else:
+                self.auth_token = self._get_C3AuthToken()
         else:
-            self._set_auth()
+            self.auth = None
 
-        # ALWAYS set the auth_token because the timeout is much longer.
-        # Note this is a simepl fix relying on login in the get_c3 method.
-        # If this proves durable, we can remove the auth_token from the
-        # constructor and just use the auth field.
-        # Then simplify the get_c3 method.
-        if self.auth_token:
-            self.auth = self.auth_token
-        else:
-            self.auth_token = self._get_C3AuthToken()
+        
+        # if self.auth_token:
+        #     self.auth = self.auth_token
+        # else:
+        #     self.auth_token = self._get_C3AuthToken()
 
     def get_conn(self):
         return self.c3iot.C3RemoteLoader.connect(self.url, self.tenant, self.tag, self.auth)
@@ -183,7 +190,7 @@ class C3Python(object):
 
             while True:
                 try:
-                    log.info(f"Getting C3 client for {self.url}...", end="")
+                    log.info(f"Getting C3 client for {self.url}...")
                     c3 = self.c3iot.C3RemoteLoader.typeSys(
                         url=self.url,
                         tenant=self.tenant,
