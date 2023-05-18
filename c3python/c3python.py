@@ -12,23 +12,29 @@ log = getmylogger(__name__)
 
 class C3Python(object):
     def __init__(self, url, tenant, tag, auth=None, keyfile=None, keystring=None,username=None, userfile=None,debug=False, auth_token=None):
-        if url is None:
-            raise ValueError("url cannot be None")
-        if tenant is None:
-            raise ValueError("tenant cannot be None")
-        if tag is None:
-            raise ValueError("tag cannot be None")
+        # Ensuring required parameters are not None
+        if not all([url, tenant, tag]):
+            raise ValueError("url, tenant, and tag cannot be None")
+        
+        # Check if both keystring and keyfile are specified
         if keystring and keyfile:
             raise ValueError("keyfile and keystring cannot both be specified")
+        
+        # Check if both username and userfile are specified
         if userfile and username:
             raise ValueError("userfile and username cannot both be specified")
+        
+        # Import necessary modules
         try:
             from urllib.request import urlopen
         except ImportError:
             from urllib2 import urlopen
 
         from types import ModuleType
-        print("keyfile={keyfile} keystring={keystring} username={username}".format(keyfile=keyfile, keystring=keystring, username=username))
+
+        print(f"keyfile={keyfile} keystring={keystring} username={username}")
+
+        # Initialize instance variables
         self.url = url
         self.tenant = tenant
         self.tag = tag
@@ -41,42 +47,33 @@ class C3Python(object):
         self.password = None
         self.c3 = None
 
+        # Initialize C3IoT module
         self.c3iot = ModuleType("c3IoT")
         self.c3iot.__loader__ = self.c3iot
         src = urlopen(url + "/public/python/c3remote_bootstrap.py").read()
-        # It might be good to have a try except here...
         exec(src, self.c3iot.__dict__)
 
-        # ALWAYS set the auth_token because the timeout is much longer.
-        # Note this is a simepl fix relying on login in the get_c3 method.
-        # If this proves durable, we can remove the auth_token from the
-        # constructor and just use the auth field.
-        # Then simplify the get_c3 method.
+        # Handle authentication
         if auth or keyfile or keystring:
             if keyfile or keystring:
-                # Here both an auth token AND a keyfile/keystring were specified
-                # store the auth token and try it first
+                # Both an auth token AND a keyfile/keystring were specified
+                # Store the auth token and try it first
                 self.auth_token = auth
                 try:
                     self._set_auth()
                 except Exception as e:
-                    print(f"WARNING: the following exception occured when trying to use the keyfile/keystring auth: {e}")
+                    print(f"WARNING: exception occurred when using the keyfile/keystring auth: {e}")
             elif self.auth_token:
                 self.auth = self.auth_token
             else:
                 self._set_auth()
+
             if self.auth_token:
                 self.auth = self.auth_token
             else:
                 self.auth_token = self._get_C3AuthToken()
         else:
             self.auth = None
-
-        
-        # if self.auth_token:
-        #     self.auth = self.auth_token
-        # else:
-        #     self.auth_token = self._get_C3AuthToken()
 
     def get_conn(self):
         return self.c3iot.C3RemoteLoader.connect(self.url, self.tenant, self.tag, self.auth)
