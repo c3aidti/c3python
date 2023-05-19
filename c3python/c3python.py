@@ -32,8 +32,6 @@ class C3Python(object):
 
         from types import ModuleType
 
-        print(f"keyfile={keyfile} keystring={keystring} username={username}")
-
         # Initialize instance variables
         self.url = url
         self.tenant = tenant
