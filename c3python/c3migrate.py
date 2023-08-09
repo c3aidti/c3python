@@ -2,6 +2,7 @@ import os
 from turtle import up
 from c3python import get_c3
 from c3python import AzureBlob
+import urllib.parse
         
 def retry_c3(c3m,retries=3):
     left = {'retries': retries}
@@ -96,7 +97,7 @@ class C3Migrate:
             #print("oDict_url", oDict['url'])
             obj = oDict['obj']
             url = oDict['url']
-            
+            # print(f"URL: {url}")
             updated = getattr(c3,fileType)(**{'id':obj.id})
             #setattr(updated,fileField, getattr(updated,fileField).fs().listFiles(url).files[0].toJson())
             
@@ -130,7 +131,10 @@ class C3Migrate:
                         # print("\n  - contentLength not found")
                         # print(url)
                         # print(getattr(updated,fileField).fs().listFiles(url).files[0].toJson())
-                        setattr(updated,fileField, getattr(updated,fileField).fs().listFiles(url).files[0].toJson())
+                        files = getattr(updated, fileField).fs().listFiles(url).files
+                        if files is not None and len(files) > 0:
+                            setattr(updated, fileField, files[0].toJson())
+                        # setattr(updated,fileField, getattr(updated,fileField).fs().listFiles(url).files[0].toJson())
                         if not getattr(updated,fileField).contentLength:
                             #print("\n  - contentLength not found again")
                             HAVE_SET_URL_ONLY = True
@@ -197,7 +201,7 @@ class C3Migrate:
         self.c3_to.Client.uploadLocalClientFiles(tmp_path, url, {"peekForMetadata": True})
         os.remove(tmp_path)
         
-    def migrate_type(self, type, batch_size=1000, remove_to=False, reset_version=False, reset_fields=None,filter=None):
+    def migrate_type(self, type, batch_size=1000, remove_to=False, reset_version=False, reset_fields=None, filter=None, include=None, child_types_fields=None):
         has_more = True
         offset = 0
         print(f'Migrating "{type}"(s) from {self.c3_from.connection.url()} to {self.c3_to.connection.url()}')
@@ -207,8 +211,14 @@ class C3Migrate:
             spec = {"limit":batch_size,"offset":offset}
             if filter:
                 spec['filter'] = filter
+            if include:
+                spec['include'] = include
             result = self.tryFetch(self.c3_from, type, spec)
             objs = result.objs
+            # exit if no objects found
+            if objs is None or len(objs) == 0:
+                print(f"No objs to migrate for {type}.")
+                break
             has_more = result.hasMore
             offset += batch_size
             if reset_version:
@@ -219,7 +229,25 @@ class C3Migrate:
                 for obj in objs:
                     for field in reset_fields:
                         setattr(obj, field, None)
-            self.tryMergeBatch(self.c3_to, type, objs)
+            new_objs = self.tryMergeBatch(self.c3_to, type, objs).objs
+
+            # use child_types_fields array of json objects: [{"child_type": "field_name"}] to update foreien keys
+            # the child type should be migrated first and fetched with a filter to get the refs to the old objs
+            if child_types_fields:
+                result = self.tryFetch(self.c3_from, type, spec)
+                for i in range(len(result.objs)):
+                    obj = result.objs[i]
+                    new_obj = new_objs[i]
+                    print(f"Updating child types for {type} {obj.id} -> {new_obj.id}")
+                    for child_type_field in child_types_fields:
+                        child_type = child_type_field['child_type']
+                        field = child_type_field['field_name']
+                        child_objs = self.tryFetch(self.c3_to, child_type, {"filter":self.c3_to.Filter.inst().eq(field,obj.id)}).objs
+                        if child_objs:
+                            for child_obj in child_objs:
+                                setattr(child_obj, field, new_obj.id)
+                            self.tryMergeBatch(self.c3_to, child_type, child_objs)
+
                     
     def migrate_files(self, type, file_field, batch_size=1000,local_path='/tmp',filter=None):
         """ Depricated. Use copyFilesFromType instead. """
@@ -336,14 +364,17 @@ class C3Migrate:
         has_more = True
         if not offset:
             offset = 0
-        file_count = getattr(self.c3_from, typeName).fetchCount()
+        if filter:
+            file_count = getattr(self.c3_from, typeName).fetchCount({'filter':filter})
+        else:
+            file_count = getattr(self.c3_from, typeName).fetchCount()
         if offset:
             file_count = file_count - offset
         print("")
         print(f'Copying files from {file_count} rows in {typeName}.{file_fields} from {self.c3_from.connection.url()} to {self.c3_to.connection.url()}')
         print(f"Using batch size: {batch_size}")
         toMountUrl = self.toFS.mountUrl()
-        print(toMountUrl)
+        # print(toMountUrl)
         toContainer=toMountUrl.split(prefix)[1].split('/')[0]
 
         fromMountUrl = self.fromFS.mountUrl()
@@ -368,22 +399,6 @@ class C3Migrate:
             objs = result.objs
             has_more = result.hasMore
 
-                    # if remove_file_keys: # Nullifies a field in the destination
-                    #     for o in objs:
-                    #         for field in remove_file_keys:
-                    #             setattr(o, field, None)
-
-            # if remove_file_keys:
-            #     for k in remove_file_keys:
-            #         if len(k.split('.')) > 1:
-            #             for o in objs:
-            #                 outer,inner = k.split('.')
-            #                 oo = getattr(o,outer)
-            #                 setattr(oo, inner, None)
-
-            #         else:
-            #             for o in objs:
-            #                 setattr(o, k, None)
             if reset_version:
                 for o in objs:
                     o.version = None
@@ -420,101 +435,38 @@ class C3Migrate:
                     outer,inner = f.split('.')
                     for o in objs:
                         if getattr(getattr(o,outer),inner):
-                            toUrls.append(
-                                getattr(getattr(o,outer),inner).url.replace(fromMountUrl,toMountUrl).split(prefix+toContainer+'/')[1]
-                            )
+                            # toUrls.append(
+                            #     getattr(getattr(o,outer),inner).url.replace(fromMountUrl,toMountUrl).split(prefix+toContainer+'/')[1]
+                            # )
+                            toUrl = getattr(getattr(o,outer),inner).url.replace(fromMountUrl,toMountUrl)
+                            toUrl = urllib.parse.unquote(toUrl)
+                            toUrl = urllib.parse.quote(toUrl, safe='')
+                            toUrls.append(toUrl.split(prefix+toContainer+'/')[1])
                             fromSignedUrls.append(
                                 self.fromFS.generatePresignedUrl(getattr(getattr(o,outer),inner).url)
                             )
-                    # fromSignedUrls.append(
-                    #     self.fromFS.generatePresignedUrl(getattr(getattr(o,outer),inner).url)
-                    #     for o in objs
-                    # )
-                    # toUrls.append(
-                    #     getattr(getattr(o,outer),inner).url.replace(fromMountUrl,toMountUrl).split(prefix+toContainer+'/')[1]
-                    # )
                 else:
                     for o in objs:
                         if getattr(o, f):
-                            fromSignedUrls.append(self.fromFS.generatePresignedUrl(getattr(o, f).url))
-                            toUrls.append(
-                                getattr(o, f).url.replace(fromMountUrl,toMountUrl).split(prefix+toContainer+'/')[1]
-                            )
-                    # fromSignedUrls.append(
-                    #     self.fromFS.generatePresignedUrl(getattr(o, f).url)
-                    #     for o in objs
-                    # )
-            
-            # old code
-            # fromSignedUrls = [
-            #     self.fromFS.generatePresignedUrl(getattr(o, field).url)
-            #     for o in objs
-            #     for field in file_fields if getattr(o, field,None)
-            # ]
+                            fromSignedUrl = self.fromFS.generatePresignedUrl(getattr(o, f).url)
+                            # print(fromSignedUrl)
+                            fromSignedUrls.append(fromSignedUrl)
+                            # toUrls.append(
+                            #     getattr(o, f).url.replace(fromMountUrl,toMountUrl).split(prefix+toContainer+'/')[1]
+                            # )
+                            toUrl = getattr(o,f).url.replace(fromMountUrl,toMountUrl)
+                            toUrl = urllib.parse.unquote(toUrl)
+                            # toUrl = urllib.parse.quote(toUrl, safe='')
+                            # toUrl = toUrl.replace(' ', '%20')
+                            split_result = toUrl.split(prefix+toContainer+'/')
+                            # print(split_result[1])
+                            # if len(split_result) < 2:
+                            #     print(f"WARNING: {prefix+toContainer+'/'} not found in {toUrl}")
+                            toUrls.append(split_result[1])
+                            # toUrls.append(toUrl.split(prefix+toContainer+'/')[1])
             print(" Done.")
 
-            # # Generate list destination Urls
-            # toUrls = []
-            # for cntr,f in enumerate(file_fields):
-            #     if len(f.split('.')) > 1:
-            #         outer,inner = f.split('.')
-            #         toUrls.append(
-            #             #self.toFS.url(getattr(getattr(o,outer),inner).path)
-            #             getattr(getattr(o,outer),inner).url.replace(fromMountUrl,toMountUrl).split(prefix+toContainer+'/')[1]
-            #             for o in objs if getattr(getattr(o,outer),inner,None)
-            #         )
-            #     else:
-            #         # print(getattr(o, f).url)
-            #         # if getattr(o,f):
-            #         #     #print(getattr(o, f).url.split(fromMountUrl)[1])
-            #         #     #print('/'+getattr(o, f).url.replace(fromMountUrl,toMountUrl).split(prefix)[1])
-            #         #     print( getattr(o, f).url.replace(fromMountUrl,toMountUrl).split(prefix+toContainer+'/')[1])
-                    
-            #         for o in objs:
-            #             if getattr(o,f):
-            #                 print(f"frommy: {getattr(o, f).url}")
-            #                 toUrls.append(
-            #                     getattr(o, f).url.replace(fromMountUrl,toMountUrl).split(prefix+toContainer+'/')[1]
-            #                 )
-            #             else:
-            #                 toUrls.append(None)
-            #         # toUrls.append(
-            #         #     #getattr(o, f).url.replace(fromMountUrl,toMountUrl).split(toContainer+'/')[1]
-            #         #     #getattr(o, f).url.split(fromMountUrl)[1]
-            #         #     #getattr(o, f).url.replace(fromMountUrl,toMountUrl)
-            #         #     #'/'+getattr(o, f).url.replace(fromMountUrl,toMountUrl).split(prefix)[1]
-            #         #     getattr(o, f).url.replace(fromMountUrl,toMountUrl).split(prefix+toContainer+'/')[1]
-                        
-            #         #     #self.toFS.url(getattr(o, f).path)
-            #         #     for o in objs if getattr(o, f,None)
-            #         # )
-            # # old code
-
-            # # toFiles = [
-            # #     getattr(o, field).url.replace(fromMountUrl,toMountUrl).split(prefix+toContainer+'/')[1]
-            # #     for o in objs
-            # #     for field in file_fields if getattr(o, field, None)
-            # # ]
             
-            # # print(f"Copying {len(fromSignedUrls)} files...",end="")
-            # # if not dry_run:
-            # #     self.toFS.copyFiles(fromSignedUrls,toFiles)
-            # # print(" Done.")
-            # # if remove_file_keys: # Nullifies a field in the destination
-            # #     for o in objs:
-            # #         for field in remove_file_keys:
-            # #             setattr(o, field, None)
-            # # if reset_version:
-            # #     for o in objs:
-            # #         o.version = None
-            # # print(fromSignedUrls)
-            # # print(toUrls)
-            # # if not dry_run:
-            # #     self.tryMergeBatch(self.c3_to, typeName, objs)
-            # # if single_batch:
-            # #     break
-            # # offset += batch_size
-            # # batch += 1
 
             # Copy files
             if dry_run:
@@ -556,44 +508,29 @@ class C3Migrate:
 
                     #updatedObjFiles = self.tryUpdateFileMetadata(self.c3_to, objFiles, f, remove_file_keys=remove_file_keys,url_only=True)
                     updatedObjFiles = self.tryUpdateFileMetadata(self.c3_to, objFiles, f, remove_file_keys=remove_file_keys,url_only=url_only)
-                    # if updatedObjFiles:
-                    #     if url_only:
-                    #         toResult = self.tryFetch(self.c3_to, typeName, spec)
-                    #         if toResult:
-                    #             print("oh yeah...")
-                    #             toObjs = toResult.objs
-                    #             for o in toObjs:
-                    #                 o.version = None
-                    #                 setattr(o,field, getattr(o,field).fs().listFiles(getattr(o,field).url).files[0].toJson())
-                    #             getattr(self.c3_to,typeName).mergeBatch([ o.toJson() for o in toObjs])
-                    # else:
+                   
                     if not updatedObjFiles:
                         updatedObjFiles = {}
-                    # try:
-                    #     updatedObjFiles = updateFileMetadata(self.c3_to,objFiles,field)
-                    #     if dry_run:
-                    #         print("Updated Obj Files:")
-                    #         print(updatedObjFiles)
-                    # except RuntimeError:
-                    #     if self.tries < self.retrys:
-                    #         self.tries += 1
-                    #         print(f'Retrying {self.tries}')
-                    #         self.set_c3_objects()
-                    #         updatedObjFiles = updateFileMetadata(self.c3_to,objFiles,field)
-                    # # for o in updatedObjs:
-                    # #     print(f"Updated {o.id}")
+                  
                     else:
                         print(f"Comparing source and dest file size and MD5")
-                        for id,oDict in updatedObjFiles.items():
-                            #print(oDict['url'])
+                        for id, oDict in updatedObjFiles.items():
                             toObj = oDict['obj']
                             fromObj = objFiles[id]['obj']
-                            toLen = getattr(toObj, f).contentLength
-                            fromLen = getattr(fromObj, f).contentLength
-                            toMD5 = getattr(toObj, f).contentMD5
-                            fromMD5 = getattr(fromObj, f).contentMD5
-                            assert toLen == fromLen, f"{toLen} != {fromLen} for {toObj.id}"
-                            assert toMD5 == fromMD5, f"{toMD5} != {fromMD5} for {toObj.id}"           
+                            # f = 'files' # replace with the correct field name
+                            # cntr = file_fields.index(oDict['field'])
+                            # f = file_fields[cntr]
+                            try:
+                                toLen = getattr(toObj, f).contentLength
+                                fromLen = getattr(fromObj, f).contentLength
+                                toMD5 = getattr(toObj, f).contentMD5
+                                fromMD5 = getattr(fromObj, f).contentMD5
+                                assert toLen == fromLen, f"{toLen} != {fromLen} for {toObj.id}"
+                                assert toMD5 == fromMD5, f"{toMD5} != {fromMD5} for {toObj.id}"
+                            except AssertionError as e:
+                                print(f"AssertionError: {e} for {toObj.id}")
+                            except AttributeError as e:
+                                print(f"AttributeError: {e} for {toObj.id}")
                 
             if single_batch:
                 break

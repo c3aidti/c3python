@@ -141,7 +141,7 @@ class C3Python(object):
             while True:
                 try:
                     log.info(f"Getting C3 client for {self.url}...")
-                    c3 = self.c3iot.C3RemoteLoader.typeSys(ls 
+                    c3 = self.c3iot.C3RemoteLoader.typeSys( 
                         url=self.url,
                         tenant=self.tenant,
                         tag=self.tag,
